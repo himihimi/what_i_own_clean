@@ -48,6 +48,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# local design and architecture drafts, mockups
-/docs
+# working drafts and mockups — local only, superseded by docs/architecture.md and docs/design.md
+/docs/*_DRAFT.md
+/docs/*_draft.md
+/docs/todos
 /scratchpad
