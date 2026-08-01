@@ -190,7 +190,45 @@ coming from the control's own label.
 Lucide dropped brand marks, so a Google or Apple logo has to be a local asset rather than an
 import.
 
-## 8. Controls: theme and locale
+## 8. The app shell
+
+Every signed-in screen sits in `components/app-shell/`. The auth screens deliberately do not — there
+is no navigation to offer someone who is not signed in.
+
+| Part | Spec |
+|---|---|
+| `AppShell` | `min-h-svh` column, body capped at 480px and centred, bottom padding clearing the tab bar |
+| `TopBar` | sticky, `bg` at 94% + `blur(12px)`, hairline bottom border, optional 34px lime plate at radius 11, title 23px/800, actions slot pushed right |
+| `BottomNav` | fixed, 78px, `bg` at 94% + `blur(12px)`, hairline top border, tabs 52px wide with a 24px icon and an 11px label |
+| FAB | 52×52, radius **18 — a squircle, not a circle**, pink gradient at 135°, no shadow |
+
+`min-h-svh`, not `min-h-screen`: on mobile browsers `vh` is the height with the toolbars *hidden*, so
+a screen sized in `vh` is taller than the visible area and the page opens slightly scrolled. Both
+bars pad for `env(safe-area-inset-*)`, so the nav clears the iOS home indicator rather than sitting
+under it, and the body's bottom padding clears the nav — otherwise the last card in a list is
+unreachable.
+
+Three departures from the mockup, all forced:
+
+- **The active tab is `lime-ink`, not pink.** An active tab says *where you are* — state, which is
+  lime here; pink is for things you can press. And `lime-ink` rather than raw `lime`, because raw lime
+  on the page colour is **1.76:1** — unreadable as a label. (§3's table gives lime as a fill, not as
+  text; this is what `lime-ink` exists for.)
+- **Labels are 11px**, not the mockup's 10px, which is below the floor in §5.
+- **The FAB's icon is `on-accent`**, not the mockup's white. White on the pink is 2.58:1, failing even
+  the 3:1 floor that applies to icons.
+
+**Unbuilt destinations render as visibly disabled tabs** rather than links that 404 — `aria-disabled`
+and `disabled` colour, driven by a `ready` flag in `navItems.ts`. Building a screen means adding the
+route and flipping the flag. Collections is in the mockups and absent here on purpose: the
+architecture defers it.
+
+The top bar's actions are a slot, because which belong there differs per screen — the mockup shows
+search and profile on the feed, search only on collections, nothing on a detail page. Welcome
+currently passes the theme toggle and locale switch, which are real, instead of buttons with no
+screens behind them.
+
+## 9. Controls: theme and locale
 
 Both live on the login screen, top right, before sign-in — someone who cannot read the current
 language cannot go looking for a setting inside an account they do not have yet. They are absolutely
@@ -220,7 +258,7 @@ Switching goes through next-intl's router with the **current pathname**, so it p
 you are on. It uses `replace`, so the back button means "the page before" rather than "this page in
 the other language".
 
-## 9. Motion
+## 10. Motion
 
 **Motion** (`motion/react`, formerly Framer Motion) drives animation. Tokens live in
 `lib/motion.ts`; anything that animates picks one of five durations rather than inventing its own.
@@ -249,7 +287,7 @@ Rules:
 
 Screens assemble top-down: 60ms between elements, which reads as intentional rather than as lag.
 
-## 10. Auth screens
+## 11. Auth screens
 
 Two screens, login and signup, sharing one shell in `components/AuthScreen.tsx`: backdrop, logo
 plate, heading, the theme and locale controls, and the terms line. They differ only in heading, form,
@@ -319,7 +357,7 @@ would render as an empty box unless a font file were bundled, while an SVG favic
 glyph against the reader's own system fonts. The trade is that a very old browser gets no icon —
 `favicon.ico` and `apple-touch-icon.png` still need making from real brand assets.
 
-## 11. Accessibility floor
+## 12. Accessibility floor
 
 Non-negotiable, and mostly missing from the mockups.
 
@@ -332,7 +370,7 @@ Non-negotiable, and mostly missing from the mockups.
 - **Motion** honours `prefers-reduced-motion`.
 - **Theme** via `data-theme` on `:root`, defaulting from `prefers-color-scheme`.
 
-## 12. Still to write
+## 13. Still to write
 
 Space scale, elevation, motion tokens, component specs beyond login (item card, status pill, tag,
 chip, bottom sheet, tab bar, chat bubbles, module card), empty and error states, the thumbnail

@@ -54,7 +54,15 @@
   "account": {
     "greeting": "你好，{name}",
     "greetingNoName": "你好",
-    "signOut": "退出登录"
+    "signOut": "退出登录",
+    "comingSoon": "物品库、添加物品与助手正在开发中，底部导航已经标示出接下来会有什么。"
+  },
+  "nav": {
+    "label": "主导航",
+    "home": "主页",
+    "library": "物品库",
+    "add": "添加",
+    "assistant": "助手"
   },
   "legal": {
     "back": "返回",

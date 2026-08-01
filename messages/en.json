@@ -54,7 +54,15 @@
   "account": {
     "greeting": "Hello, {name}",
     "greetingNoName": "Hello",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "comingSoon": "The library, adding things, and the assistant are next. The tab bar shows what is coming."
+  },
+  "nav": {
+    "label": "Main",
+    "home": "Home",
+    "library": "Library",
+    "add": "Add",
+    "assistant": "Assistant"
   },
   "legal": {
     "back": "Back",
