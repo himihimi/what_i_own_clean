@@ -8,25 +8,26 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { signIn, type AuthResult } from "@/lib/auth";
+import { signIn } from "@/lib/auth/client";
+import type { AuthFailure } from "@/lib/auth/types";
 import { fieldErrors, loginSchema } from "@/lib/validation/auth";
+import { useRouter } from "@/i18n/navigation";
 
 /** Maps a failure reason to its message key, so no reason renders as raw text. */
 const errorKeys = {
-  "not-implemented": "notImplemented",
   "invalid-credentials": "invalidCredentials",
   "email-taken": "emailTaken",
+  "weak-password": "weakPassword",
+  "rate-limited": "rateLimited",
   unknown: "unknown",
-} as const satisfies Record<
-  Extract<AuthResult, { ok: false }>["reason"],
-  string
->;
+} as const satisfies Record<AuthFailure, string>;
 
 export function LoginForm() {
   const t = useTranslations("login");
   const tAuth = useTranslations("auth");
   const tErrors = useTranslations("authErrors");
 
+  const router = useRouter();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -55,10 +56,17 @@ export function LoginForm() {
 
     const result = await signIn(parsed.data);
 
-    setPending(false);
     if (!result.ok) {
+      setPending(false);
       setFormError(tErrors(errorKeys[result.reason]));
+      return;
     }
+
+    // Stays pending through the navigation: re-enabling the button here would
+    // invite a second submit while the next screen is still rendering.
+    router.replace("/welcome");
+    // The session arrived after any prefetch of /welcome, so drop that cache.
+    router.refresh();
   }
 
   return (

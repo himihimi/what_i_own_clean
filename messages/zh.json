@@ -36,6 +36,11 @@
     "haveAccount": "已有账号？",
     "logInLink": "登录"
   },
+  "account": {
+    "greeting": "你好，{name}",
+    "greetingNoName": "你好",
+    "signOut": "退出登录"
+  },
   "authErrors": {
     "email": "请输入有效的邮箱地址。",
     "passwordRequired": "请输入密码。",
@@ -44,7 +49,8 @@
     "passwordMismatch": "两次输入的密码不一致。",
     "invalidCredentials": "邮箱或密码不正确。",
     "emailTaken": "该邮箱已注册。",
-    "notImplemented": "账号功能尚未接入，这个页面目前只是设计稿。",
+    "weakPassword": "请设置更强的密码。",
+    "rateLimited": "尝试次数过多，请稍后再试。",
     "unknown": "出错了，请重试。"
   }
 }

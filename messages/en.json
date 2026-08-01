@@ -36,6 +36,11 @@
     "haveAccount": "Already have an account?",
     "logInLink": "Log in"
   },
+  "account": {
+    "greeting": "Hello, {name}",
+    "greetingNoName": "Hello",
+    "signOut": "Sign out"
+  },
   "authErrors": {
     "email": "Enter a valid email address.",
     "passwordRequired": "Enter your password.",
@@ -44,7 +49,8 @@
     "passwordMismatch": "Both passwords must match.",
     "invalidCredentials": "That email and password do not match an account.",
     "emailTaken": "An account with that email already exists.",
-    "notImplemented": "Accounts are not connected yet. This screen is the design, not the plumbing.",
+    "weakPassword": "Choose a stronger password.",
+    "rateLimited": "Too many attempts. Wait a moment and try again.",
     "unknown": "Something went wrong. Try again."
   }
 }
