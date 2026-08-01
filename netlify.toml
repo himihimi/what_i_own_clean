@@ -1,0 +1,30 @@
+# Netlify build configuration. The two Supabase values are deliberately NOT here
+# — they differ per environment, so they live in Site configuration →
+# Environment variables. See .env.example for which ones and why.
+
+[build]
+  command = "pnpm build"
+  publish = ".next"
+
+[build.environment]
+  # Netlify's default Node can lag behind. Next 16 and the toolchain here are
+  # built against 24.
+  NODE_VERSION = "24"
+  # Matches the pnpm pinned in package.json devEngines. Netlify's build image
+  # reads PNPM_VERSION; it does not read devEngines.
+  PNPM_VERSION = "11.8.0"
+
+  # Netlify scans build output for the values of environment variables and fails
+  # the deploy when it finds one. Both of ours are NEXT_PUBLIC_*, which Next
+  # inlines into the client bundle on purpose — the browser talks to Supabase
+  # directly, so the app cannot work otherwise. Naming them here says "these are
+  # meant to be public" without switching the scanner off, so it still catches a
+  # genuinely secret value later.
+  #
+  # The sb_secret_ key must never be set on this site. It bypasses every
+  # row-level security policy.
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+
+# The Next.js runtime is not declared as a plugin on purpose: Netlify detects
+# Next and installs the current runtime itself. Pinning it here is how sites end
+# up on an old one.
