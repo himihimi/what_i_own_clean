@@ -6,18 +6,18 @@ import { AuthScreen } from "@/components/AuthScreen";
 import { Link } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 
-import { LoginForm } from "./LoginForm";
+import { SignupForm } from "./SignupForm";
 
-export default async function LoginPage({
+export default async function SignupPage({
   params,
-}: PageProps<"/[locale]/login">) {
+}: PageProps<"/[locale]/signup">) {
   const { locale } = await params;
   if (!hasLocale(routing.locales, locale)) {
     notFound();
   }
   setRequestLocale(locale);
 
-  const t = await getTranslations("login");
+  const t = await getTranslations("signup");
 
   return (
     <AuthScreen
@@ -25,17 +25,17 @@ export default async function LoginPage({
       title={t("title")}
       footer={
         <>
-          {t("noAccount")}{" "}
+          {t("haveAccount")}{" "}
           <Link
-            href="/signup"
+            href="/login"
             className="font-semibold text-accent-ink underline underline-offset-4"
           >
-            {t("signUpLink")}
+            {t("logInLink")}
           </Link>
         </>
       }
     >
-      <LoginForm />
+      <SignupForm />
     </AuthScreen>
   );
 }

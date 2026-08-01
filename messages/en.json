@@ -13,16 +13,38 @@
     "dark": "Dark",
     "system": "System"
   },
-  "login": {
+  "auth": {
     "subtitle": "Log it, file it, find it again",
+    "name": "Name",
     "email": "Email",
-    "emailPlaceholder": "you@example.com",
-    "sendCode": "Send code",
-    "code": "Verification code",
-    "codePlaceholder": "6 digits",
-    "codeSent": "Code sent to {email}. It expires in 10 minutes.",
-    "logIn": "Log in",
-    "google": "Continue with Google",
-    "terms": "Logging in means you agree to the Terms and the Privacy Policy."
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "passwordHint": "At least {min} characters.",
+    "terms": "Signing in means you agree to the Terms and the Privacy Policy."
+  },
+  "login": {
+    "title": "Welcome back",
+    "submit": "Log in",
+    "submitting": "Logging in…",
+    "noAccount": "No account yet?",
+    "signUpLink": "Create one"
+  },
+  "signup": {
+    "title": "Create your account",
+    "submit": "Create account",
+    "submitting": "Creating account…",
+    "haveAccount": "Already have an account?",
+    "logInLink": "Log in"
+  },
+  "authErrors": {
+    "email": "Enter a valid email address.",
+    "passwordRequired": "Enter your password.",
+    "passwordShort": "Use at least {min} characters.",
+    "nameRequired": "Enter your name.",
+    "passwordMismatch": "Both passwords must match.",
+    "invalidCredentials": "That email and password do not match an account.",
+    "emailTaken": "An account with that email already exists.",
+    "notImplemented": "Accounts are not connected yet. This screen is the design, not the plumbing.",
+    "unknown": "Something went wrong. Try again."
   }
 }

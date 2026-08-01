@@ -13,16 +13,38 @@
     "dark": "深色",
     "system": "跟随系统"
   },
-  "login": {
+  "auth": {
     "subtitle": "登记 · 分类 · 找回你拥有的一切",
+    "name": "姓名",
     "email": "邮箱",
-    "emailPlaceholder": "you@example.com",
-    "sendCode": "发送验证码",
-    "code": "验证码",
-    "codePlaceholder": "6 位数字",
-    "codeSent": "验证码已发送至 {email}，10 分钟内有效。",
-    "logIn": "登录",
-    "google": "使用 Google 登录",
+    "password": "密码",
+    "confirmPassword": "确认密码",
+    "passwordHint": "至少 {min} 个字符。",
     "terms": "登录即代表同意《用户协议》与《隐私政策》"
+  },
+  "login": {
+    "title": "欢迎回来",
+    "submit": "登录",
+    "submitting": "正在登录…",
+    "noAccount": "还没有账号？",
+    "signUpLink": "注册"
+  },
+  "signup": {
+    "title": "创建账号",
+    "submit": "创建账号",
+    "submitting": "正在创建…",
+    "haveAccount": "已有账号？",
+    "logInLink": "登录"
+  },
+  "authErrors": {
+    "email": "请输入有效的邮箱地址。",
+    "passwordRequired": "请输入密码。",
+    "passwordShort": "请至少输入 {min} 个字符。",
+    "nameRequired": "请输入姓名。",
+    "passwordMismatch": "两次输入的密码不一致。",
+    "invalidCredentials": "邮箱或密码不正确。",
+    "emailTaken": "该邮箱已注册。",
+    "notImplemented": "账号功能尚未接入，这个页面目前只是设计稿。",
+    "unknown": "出错了，请重试。"
   }
 }
