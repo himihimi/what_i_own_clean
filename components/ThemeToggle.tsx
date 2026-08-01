@@ -1,11 +1,10 @@
 "use client";
 
 import { Moon, Sun, SunMoon, type LucideIcon } from "lucide-react";
-import { motion } from "motion/react";
 import { useTranslations } from "next-intl";
 import { useSyncExternalStore } from "react";
 
-import { press, transitions } from "@/lib/motion";
+import { Button } from "@/components/ui/button";
 import {
   readTheme,
   setTheme,
@@ -30,7 +29,7 @@ export function ThemeToggle() {
 
   // Server-rendered markup cannot know the stored choice, so it renders
   // "system" and the client corrects it on hydration. The document itself is
-  // already on the right theme by then — the inline script in <head> set it.
+  // already on the right theme by then — the inline script in the layout set it.
   const mode = useSyncExternalStore(
     subscribeTheme,
     readTheme,
@@ -44,15 +43,13 @@ export function ThemeToggle() {
   }
 
   return (
-    <motion.button
-      type="button"
+    <Button
+      variant="outline"
+      size="icon"
       onClick={cycle}
-      whileTap={press.row}
-      transition={transitions.quick}
       aria-label={`${t("label")}: ${t(mode)}`}
-      className="grid size-11 place-items-center rounded-full border border-border bg-surface text-muted"
     >
       <Icon size={18} aria-hidden="true" />
-    </motion.button>
+    </Button>
   );
 }
