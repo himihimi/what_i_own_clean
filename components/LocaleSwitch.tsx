@@ -1,22 +1,28 @@
 "use client";
 
-import { motion } from "motion/react";
+import { Check, Languages } from "lucide-react";
 import type { Locale } from "next-intl";
 import { useTranslations } from "next-intl";
 
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { localeLabels } from "@/i18n/localeLabels";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
-import { press, transitions } from "@/lib/motion";
 
 /**
- * A segmented pill, following demo.html's `.lang-switch`. Two locales fit in
- * one, where a dropdown would hide half the choice behind a tap.
+ * A dropdown rather than the segmented pill it replaced, so the trigger is the
+ * same round icon button as the theme toggle and the two read as one cluster.
+ * The pill also grew with every locale added; a menu does not.
  *
  * Navigation goes through next-intl's router with the current pathname, so the
- * switch preserves the page you are on rather than returning to the root.
- * `replace` keeps the back button meaning "the page before", not "the same page
- * in the other language".
+ * page is preserved rather than returning to the root. `replace` keeps the back
+ * button meaning "the page before", not "this page in the other language".
  */
 export function LocaleSwitch({ current }: { current: Locale }) {
   const t = useTranslations("localeSwitcher");
@@ -24,31 +30,26 @@ export function LocaleSwitch({ current }: { current: Locale }) {
   const pathname = usePathname();
 
   return (
-    <div
-      role="group"
-      aria-label={t("label")}
-      className="flex items-center overflow-hidden rounded-full border border-border bg-surface"
-    >
-      {routing.locales.map((locale) => {
-        const active = locale === current;
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="icon" aria-label={t("label")}>
+          <Languages size={18} aria-hidden="true" />
+        </Button>
+      </DropdownMenuTrigger>
 
-        return (
-          <motion.button
+      <DropdownMenuContent align="end" className="min-w-40">
+        {routing.locales.map((locale) => (
+          <DropdownMenuItem
             key={locale}
-            type="button"
             lang={locale}
-            aria-pressed={active}
-            whileTap={press.row}
-            transition={transitions.quick}
-            onClick={() => router.replace(pathname, { locale })}
-            className={`h-11 px-4 text-sm font-bold ${
-              active ? "bg-accent text-on-accent" : "text-muted"
-            }`}
+            onSelect={() => router.replace(pathname, { locale })}
+            className="justify-between"
           >
             {localeLabels[locale]}
-          </motion.button>
-        );
-      })}
-    </div>
+            {locale === current && <Check size={16} aria-hidden="true" />}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

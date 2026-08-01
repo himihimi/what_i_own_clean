@@ -5,10 +5,13 @@ import type { Locale } from "next-intl";
  * who cannot read the current one. Never translated, which is why these are a
  * module constant rather than message keys.
  *
+ * Full names rather than the "EN" / "中文" abbreviations the old segmented pill
+ * needed — a dropdown has room.
+ *
  * Typed against the configured locales, so adding one to `routing` will not
  * compile until it is named here.
  */
 export const localeLabels: Record<Locale, string> = {
-  en: "EN",
+  en: "English",
   zh: "中文",
 };
