@@ -49,6 +49,14 @@ export default async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Everything except API routes, Next internals, and files with an extension.
-  matcher: "/((?!api|_next|_vercel|.*\\..*).*)",
+  /*
+   * Everything except API routes, Next internals, and files with an extension.
+   *
+   * `auth` is excluded too: /auth/callback is the fixed URL Supabase redirects
+   * password-reset links to, and next-intl would rewrite it to
+   * /en/auth/callback, which does not exist. It has no locale because the
+   * allow-listed redirect URL cannot vary per language; the locale rides along
+   * in a `next` parameter instead.
+   */
+  matcher: "/((?!api|auth|_next|_vercel|.*\\..*).*)",
 };
