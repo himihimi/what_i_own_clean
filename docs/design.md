@@ -289,9 +289,19 @@ Screens assemble top-down: 60ms between elements, which reads as intentional rat
 
 ## 11. Auth screens
 
-Two screens, login and signup, sharing one shell in `components/AuthScreen.tsx`: backdrop, logo
-plate, heading, the theme and locale controls, and the terms line. They differ only in heading, form,
-and the link at the bottom. Full-viewport, single column, centred, capped at 420 px on wider screens.
+**Four screens** share one shell in `components/AuthScreen.tsx`: backdrop, logo plate, heading, the
+theme and locale controls, and the terms line. They differ only in heading, form, and the link at the
+bottom. Full-viewport, single column, centred, capped at 420 px on wider screens.
+
+| Screen | Job |
+|---|---|
+| login | email and password |
+| signup | name, email, password, confirm |
+| forgot-password | request a reset link |
+| update-password | choose a new one, reached from that link |
+
+The first three are `/{locale}/auth/*`; the last is `/{locale}/challenge/*`, because an emailed link
+is what gets you there. See [architecture.md](./architecture.md) for why that distinction exists.
 
 | Element | Spec |
 |---|---|
@@ -301,7 +311,8 @@ and the link at the bottom. Full-viewport, single column, centred, capped at 420
 | Subtitle | 14px, `muted` |
 | Fields | `<Field>` + `<Input>`, 44px tall, radius `md`, `surface` fill, label as placeholder |
 | Submit | `<Button size="lg">` — pink filled, full width |
-| Form error | `<Alert variant="destructive">` above the fields |
+| Form error | `<Alert variant="destructive">` with `TriangleAlert`, above the fields |
+| Notice | `<Alert>` with `MailCheck` — replaces the form once a link is on its way |
 | Cross link | `accent-ink`, underlined |
 | Terms | 11px, `muted-2` |
 
@@ -331,10 +342,49 @@ Departures from the mockup:
 - **The terms line links out**, via next-intl rich text rather than string concatenation: the two
   links sit mid-sentence and fall in different places in each language.
 
-Four screens share the shell: login, signup, forgot-password, and update-password.
-
 **Forgot password** sits under the password field, right-aligned, in `text` rather than `accent-ink`.
 It is an escape hatch, not the action being offered, so it does not compete with the submit button.
+
+### States beyond "filled in correctly"
+
+A form that only knows success and field errors is not finished. These are the rest, and each replaces
+or joins the form rather than navigating away — losing what someone typed to show them a message is
+its own small insult.
+
+| State | Where | Shows |
+|---|---|---|
+| Link sent | forgot-password | notice: *"If that address has an account, a reset link is on its way."* Deliberately conditional — see below |
+| Check your inbox | signup, when confirmation is required | notice naming the address, plus a spam-folder hint |
+| Address unconfirmed | login | error, **plus a "Send a new confirmation link" button** |
+| New link sent | login, after that resend | notice naming the address |
+| Link expired | login or forgot-password | error: *"That link has expired. Request a new one."* |
+| Link invalid | same | error: *"That link is not valid."* — a different thing to the reader |
+| Rate limited | any | *"Try again in 44 seconds"* — the real number, per the copy rules below |
+
+Two of these are shaped by what the server is allowed to reveal:
+
+- **"If that address has an account"** — Supabase answers a reset request identically whether or not
+  the address is registered, and so must the screen. "No such account" would turn the form into a way
+  to find out who has one.
+- **Sign-up says a link was sent, never that an account was created**, for the same reason: an
+  address that already has one produces the same response.
+
+**The unconfirmed case earns its extra button.** Telling someone to open a link that has expired is a
+dead end — they cannot sign in and the link is dead. The resend appears exactly where the refusal
+happened, and nowhere else.
+
+### Copy rules
+
+These apply everywhere, not only here. They were in the mockup notes and had not been written down.
+
+- **No apologies, no "oops", no exclamation marks.** State what happened, then what to do about it.
+- **Numbers are real numbers**, never "a while" or "shortly". "Try again in 44 seconds" — which is
+  why the wait is parsed out of the provider's message rather than rounded off.
+- **An empty screen ends in a button**, not a shrug: it is an invitation to act.
+- **Action labels stay constant through a flow.** The button that says *Save* produces a toast that
+  says *Saved* — never *Success*.
+- **Never surface provider text.** It is unlocalised, written for developers, and occasionally
+  discloses which accounts exist. Unrecognised failures say "Something went wrong. Try again."
 
 ### Legal pages
 
@@ -344,7 +394,8 @@ so measure matters more than atmosphere.
 
 Copy lives in `content/legal/*.ts` as typed documents rather than in `messages/`, which is for
 interface strings: these are paragraphs, they change on their own schedule, and they carry an
-effective date. **They are a draft with placeholders in square brackets and need legal review** —
+effective date. **They are a draft and need legal review in both languages.** A contact address and
+the governing law are deliberately unstated rather than filled with something that reads as real —
 see architecture.md.
 
 ### Favicon
