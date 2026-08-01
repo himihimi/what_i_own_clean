@@ -1,4 +1,14 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/*
+ * shadcn writes `&:is(.dark *)`, which never fires here: the theme is set with
+ * data-theme on :root, not a class. Retargeted so any `dark:` utility inside a
+ * generated component still works. Our own code should not need it — the tokens
+ * below already flip.
+ */
+@custom-variant dark (&:is(:root[data-theme="dark"] *));
 
 /*
  * Design tokens. See docs/design.md.
@@ -43,10 +53,47 @@
   --radius-md: 14px;
   --radius-lg: 18px;
   --radius-xl: 26px;
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
 
   --shadow-sm: var(--elevation-sm);
   --shadow-md: var(--elevation-md);
   --shadow-lg: var(--elevation-lg);
+
+  /*
+   * next/font sets these on <html>. Wiring them here is what actually applies
+   * Geist — before this, the fonts were loaded and never used.
+   */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-heading: var(--font-sans);
+
+  /*
+   * shadcn's semantic names, aliased onto our palette. Generated components
+   * reference these, and this is what keeps them on our colours instead of
+   * shadcn's neutral greys.
+   *
+   * Two of shadcn's names collide with ours and are deliberately NOT defined:
+   * `accent`, which means a hover surface to shadcn and the pink action colour
+   * to us, and `muted`, which is a background to shadcn and secondary text to
+   * us. A generated component using `bg-accent` or `bg-muted` is adapted to
+   * `bg-surface-2` on arrival. See docs/design.md.
+   */
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--text);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--text);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--on-accent);
+  --color-secondary: var(--surface-2);
+  --color-secondary-foreground: var(--text);
+  --color-muted-foreground: var(--muted);
+  --color-accent-foreground: var(--text);
+  --color-destructive: var(--danger);
+  --color-input: var(--border);
+  --color-ring: var(--accent-ink);
 }
 
 :root {
@@ -87,6 +134,9 @@
 
   --scrim: rgba(22, 49, 12, 0.44);
   --auth-backdrop: linear-gradient(165deg, #f4f7ee, #e9f0dc);
+
+  /* Base for shadcn's derived radii. 14px is our `md`. */
+  --radius: 0.875rem;
 }
 
 /*
@@ -95,6 +145,9 @@
  * work later and an explicit choice wins in both directions. A media query
  * cannot share a declaration block with a plain selector, so the values
  * repeat. Keep the two blocks in step.
+ *
+ * The shadcn aliases above resolve through these, so generated components
+ * follow the theme without a second palette to maintain.
  */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -164,6 +217,16 @@
 }
 
 @layer base {
+  /* Tailwind v4 defaults border-color to currentColor; shadcn components
+     assume the token instead. */
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply font-sans;
+  }
+
   body {
     background: var(--bg);
     color: var(--text);
@@ -171,7 +234,8 @@
 
   /*
    * Geist carries no CJK glyphs, so name the system faces. System fonts only —
-   * a web font for CJK is 2-5 MB per script.
+   * a web font for CJK is 2-5 MB per script. More specific than the `html`
+   * rule above, so it wins for Chinese.
    */
   html:lang(zh) {
     font-family:
