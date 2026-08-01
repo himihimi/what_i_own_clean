@@ -6,14 +6,23 @@ import { useState } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { signIn } from "@/lib/auth/client";
+import { useRouter } from "@/i18n/navigation";
+import { updatePassword } from "@/lib/auth/client";
 import type { AuthFailure } from "@/lib/auth/types";
-import { fieldErrors, loginSchema } from "@/lib/validation/auth";
-import { Link, useRouter } from "@/i18n/navigation";
+import {
+  PASSWORD_MIN,
+  fieldErrors,
+  updatePasswordSchema,
+} from "@/lib/validation/auth";
 
-/** Maps a failure reason to its message key, so no reason renders as raw text. */
 const errorKeys = {
   "invalid-credentials": "invalidCredentials",
   "email-taken": "emailTaken",
@@ -22,12 +31,12 @@ const errorKeys = {
   unknown: "unknown",
 } as const satisfies Record<AuthFailure, string>;
 
-export function LoginForm() {
-  const t = useTranslations("login");
+export function UpdatePasswordForm() {
+  const t = useTranslations("updatePassword");
   const tAuth = useTranslations("auth");
   const tErrors = useTranslations("authErrors");
-
   const router = useRouter();
+
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -36,12 +45,12 @@ export function LoginForm() {
     event.preventDefault();
 
     const form = new FormData(event.currentTarget);
-    const parsed = loginSchema({
-      email: tErrors("email"),
-      passwordRequired: tErrors("passwordRequired"),
+    const parsed = updatePasswordSchema({
+      passwordShort: tErrors("passwordShort", { min: PASSWORD_MIN }),
+      passwordMismatch: tErrors("passwordMismatch"),
     }).safeParse({
-      email: form.get("email"),
       password: form.get("password"),
+      confirmPassword: form.get("confirmPassword"),
     });
 
     if (!parsed.success) {
@@ -54,7 +63,7 @@ export function LoginForm() {
     setFormError(null);
     setPending(true);
 
-    const result = await signIn(parsed.data);
+    const result = await updatePassword(parsed.data.password);
 
     if (!result.ok) {
       setPending(false);
@@ -62,10 +71,9 @@ export function LoginForm() {
       return;
     }
 
-    // Stays pending through the navigation: re-enabling the button here would
-    // invite a second submit while the next screen is still rendering.
+    // Already signed in — the recovery link established the session — so this
+    // goes straight in rather than back to a login form.
     router.replace("/welcome");
-    // The session arrived after any prefetch of /welcome, so drop that cache.
     router.refresh();
   }
 
@@ -74,58 +82,47 @@ export function LoginForm() {
       <FieldGroup>
         {formError && (
           <Alert variant="destructive">
-            {/* Decorative: the Alert's role already announces the message. */}
             <TriangleAlert aria-hidden="true" />
             <AlertDescription>{formError}</AlertDescription>
           </Alert>
         )}
 
-        {/* The label doubles as the placeholder, so it is visually hidden
-            rather than removed: a placeholder disappears as soon as there is
-            text in the field, and is not an accessible name. */}
-        <Field data-invalid={Boolean(errors.email)}>
-          <FieldLabel htmlFor="email" className="sr-only">
-            {tAuth("email")}
-          </FieldLabel>
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            placeholder={tAuth("email")}
-            aria-invalid={Boolean(errors.email)}
-          />
-          <FieldError>{errors.email}</FieldError>
-        </Field>
-
         <Field data-invalid={Boolean(errors.password)}>
           <FieldLabel htmlFor="password" className="sr-only">
-            {tAuth("password")}
+            {t("newPassword")}
           </FieldLabel>
           <Input
             id="password"
             name="password"
             type="password"
-            autoComplete="current-password"
-            placeholder={tAuth("password")}
+            autoComplete="new-password"
+            placeholder={t("newPassword")}
             aria-invalid={Boolean(errors.password)}
           />
-          <FieldError>{errors.password}</FieldError>
+          {errors.password ? (
+            <FieldError>{errors.password}</FieldError>
+          ) : (
+            <FieldDescription>
+              {tAuth("passwordHint", { min: PASSWORD_MIN })}
+            </FieldDescription>
+          )}
         </Field>
 
-        {/* Under the password, right-aligned, in normal text colour rather than
-            the accent — it is an escape hatch, not the action being offered. */}
-        <div className="-mt-3 text-right">
-          <Link
-            href="/forgot-password"
-            className="text-sm text-text underline-offset-4 hover:underline"
-          >
-            {t("forgotPasswordLink")}
-          </Link>
-        </div>
+        <Field data-invalid={Boolean(errors.confirmPassword)}>
+          <FieldLabel htmlFor="confirmPassword" className="sr-only">
+            {tAuth("confirmPassword")}
+          </FieldLabel>
+          <Input
+            id="confirmPassword"
+            name="confirmPassword"
+            type="password"
+            autoComplete="new-password"
+            placeholder={tAuth("confirmPassword")}
+            aria-invalid={Boolean(errors.confirmPassword)}
+          />
+          <FieldError>{errors.confirmPassword}</FieldError>
+        </Field>
 
-        {/* Pink filled: this is the screen's action, and nothing else competes
-            for it now. */}
         <Button type="submit" size="lg" className="w-full" disabled={pending}>
           {pending ? t("submitting") : t("submit")}
         </Button>

@@ -52,6 +52,25 @@ export function signupSchema(
     });
 }
 
+export function forgotPasswordSchema(m: Pick<AuthMessages, "email">) {
+  return z.object({ email: z.email({ error: m.email }) });
+}
+
+/** Same rules as sign-up: this is where a new password is chosen. */
+export function updatePasswordSchema(
+  m: Pick<AuthMessages, "passwordShort" | "passwordMismatch">,
+) {
+  return z
+    .object({
+      password: z.string().min(PASSWORD_MIN, { error: m.passwordShort }),
+      confirmPassword: z.string(),
+    })
+    .refine((values) => values.password === values.confirmPassword, {
+      error: m.passwordMismatch,
+      path: ["confirmPassword"],
+    });
+}
+
 export type LoginValues = z.infer<ReturnType<typeof loginSchema>>;
 export type SignupValues = z.infer<ReturnType<typeof signupSchema>>;
 

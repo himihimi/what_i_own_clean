@@ -20,14 +20,29 @@
     "password": "Password",
     "confirmPassword": "Confirm password",
     "passwordHint": "At least {min} characters.",
-    "terms": "Signing in means you agree to the Terms and the Privacy Policy."
+    "terms": "Signing in means you agree to the <terms>Terms</terms> and the <privacy>Privacy Policy</privacy>."
   },
   "login": {
     "title": "Welcome back",
     "submit": "Log in",
     "submitting": "Logging in…",
+    "forgotPasswordLink": "Forgot your password?",
     "noAccount": "No account yet?",
     "signUpLink": "Create one"
+  },
+  "forgotPassword": {
+    "title": "Reset your password",
+    "submit": "Send reset link",
+    "submitting": "Sending…",
+    "sent": "If that address has an account, a reset link is on its way. The link expires in an hour.",
+    "backToLogin": "Back to log in"
+  },
+  "updatePassword": {
+    "title": "Choose a new password",
+    "newPassword": "New password",
+    "submit": "Save password",
+    "submitting": "Saving…",
+    "backToLogin": "Back to log in"
   },
   "signup": {
     "title": "Create your account",
@@ -41,6 +56,10 @@
     "greetingNoName": "Hello",
     "signOut": "Sign out"
   },
+  "legal": {
+    "back": "Back",
+    "updated": "Last updated {date}"
+  },
   "authErrors": {
     "email": "Enter a valid email address.",
     "passwordRequired": "Enter your password.",
@@ -51,6 +70,8 @@
     "emailTaken": "An account with that email already exists.",
     "weakPassword": "Choose a stronger password.",
     "rateLimited": "Too many attempts. Wait a moment and try again.",
+    "linkExpired": "That link has expired. Request a new one.",
+    "linkInvalid": "That link is not valid. Request a new one.",
     "unknown": "Something went wrong. Try again."
   }
 }

@@ -53,3 +53,43 @@ export async function signOut(): Promise<void> {
   const supabase = createClient();
   await supabase.auth.signOut();
 }
+
+/**
+ * Sends a reset link.
+ *
+ * `redirectTo` points at /auth/callback — a fixed, allow-listed URL that cannot
+ * vary per locale, so the language rides along in `next` and the callback
+ * forwards there once the link has been exchanged for a session.
+ *
+ * Supabase answers the same way whether or not the address has an account, and
+ * so must the UI: reporting "no such account" here would turn this form into a
+ * way to discover who has one. The only failures worth surfacing are transport
+ * and rate limiting.
+ */
+export async function requestPasswordReset(values: {
+  email: string;
+  locale: string;
+}): Promise<AuthResult> {
+  const supabase = createClient();
+  const next = `/${values.locale}/update-password`;
+
+  const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
+    redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+  });
+
+  return error ? { ok: false, reason: toFailure(error) } : { ok: true };
+}
+
+/**
+ * Sets a new password for whoever the current session belongs to.
+ *
+ * Reached from a reset link, where the session came from the emailed token — so
+ * possession of that link is the authorisation. Also usable later from a
+ * settings screen by an already signed-in user.
+ */
+export async function updatePassword(password: string): Promise<AuthResult> {
+  const supabase = createClient();
+  const { error } = await supabase.auth.updateUser({ password });
+
+  return error ? { ok: false, reason: toFailure(error) } : { ok: true };
+}
