@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { LocaleSwitch } from "@/components/LocaleSwitch";
 import { Reveal } from "@/components/Reveal";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Link } from "@/i18n/navigation";
 
 /**
  * The shell both auth screens sit in: backdrop, logo plate, heading, the theme
@@ -72,8 +73,21 @@ export async function AuthScreen({
 
         <Reveal delay={0.18} className="w-full">
           <p className="mt-6 text-sm text-muted">{footer}</p>
+          {/* Rich text rather than string concatenation: the two links sit
+              mid-sentence, and where they fall differs per language. */}
           <p className="mt-6 text-[11px] leading-relaxed text-muted-2">
-            {t("terms")}
+            {t.rich("terms", {
+              terms: (chunks) => (
+                <Link href="/terms" className="underline underline-offset-2">
+                  {chunks}
+                </Link>
+              ),
+              privacy: (chunks) => (
+                <Link href="/privacy" className="underline underline-offset-2">
+                  {chunks}
+                </Link>
+              ),
+            })}
           </p>
         </Reveal>
       </div>
