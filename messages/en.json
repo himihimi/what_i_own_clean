@@ -7,6 +7,12 @@
   "localeSwitcher": {
     "label": "Language"
   },
+  "theme": {
+    "label": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
   "login": {
     "subtitle": "Log it, file it, find it again",
     "email": "Email",

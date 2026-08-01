@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { notFound } from "next/navigation";
+import Script from "next/script";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { MotionProvider } from "@/components/MotionProvider";
+import { ThemeSync } from "@/components/ThemeSync";
 import { routing } from "@/i18n/routing";
+import { themeInitScript } from "@/lib/theme";
 
 import "../globals.css";
 
@@ -61,8 +64,22 @@ export default async function LocaleLayout({
     <html
       lang={locale}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      // The theme script below mutates this element before React hydrates.
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
+        {/*
+         * Applies a stored theme before hydration. next/script rather than a
+         * raw <script>: React never executes script tags it renders on the
+         * client, and warns about them on every navigation. beforeInteractive
+         * is injected into the initial HTML by the server instead.
+         */}
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: themeInitScript }}
+        />
+        <ThemeSync />
         <NextIntlClientProvider>
           <MotionProvider>{children}</MotionProvider>
         </NextIntlClientProvider>

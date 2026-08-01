@@ -7,6 +7,12 @@
   "localeSwitcher": {
     "label": "语言"
   },
+  "theme": {
+    "label": "主题",
+    "light": "浅色",
+    "dark": "深色",
+    "system": "跟随系统"
+  },
   "login": {
     "subtitle": "登记 · 分类 · 找回你拥有的一切",
     "email": "邮箱",
