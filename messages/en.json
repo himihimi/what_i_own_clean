@@ -1,9 +1,22 @@
 {
   "app": {
     "name": "What I Own",
+    "mark": "W",
     "tagline": "Know what you own, and where you put it."
   },
   "localeSwitcher": {
     "label": "Language"
+  },
+  "login": {
+    "subtitle": "Log it, file it, find it again",
+    "email": "Email",
+    "emailPlaceholder": "you@example.com",
+    "sendCode": "Send code",
+    "code": "Verification code",
+    "codePlaceholder": "6 digits",
+    "codeSent": "Code sent to {email}. It expires in 10 minutes.",
+    "logIn": "Log in",
+    "google": "Continue with Google",
+    "terms": "Logging in means you agree to the Terms and the Privacy Policy."
   }
 }

@@ -1,9 +1,22 @@
 {
   "app": {
     "name": "我拥有什么",
+    "mark": "物",
     "tagline": "知道自己有什么，也知道放在哪里。"
   },
   "localeSwitcher": {
     "label": "语言"
+  },
+  "login": {
+    "subtitle": "登记 · 分类 · 找回你拥有的一切",
+    "email": "邮箱",
+    "emailPlaceholder": "you@example.com",
+    "sendCode": "发送验证码",
+    "code": "验证码",
+    "codePlaceholder": "6 位数字",
+    "codeSent": "验证码已发送至 {email}，10 分钟内有效。",
+    "logIn": "登录",
+    "google": "使用 Google 登录",
+    "terms": "登录即代表同意《用户协议》与《隐私政策》"
   }
 }

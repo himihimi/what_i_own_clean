@@ -1,13 +1,199 @@
 @import "tailwindcss";
 
 /*
- * Per-locale font stack. Geist carries no CJK glyphs, so Chinese would fall
- * back to whatever the browser picks; this names the system faces instead.
- * System fonts only — a web font for CJK is 2–5 MB per script.
- * See docs/design.md.
+ * Design tokens. See docs/design.md.
+ *
+ * Values live in CSS variables so they can change per theme; `@theme inline`
+ * maps them onto Tailwind utilities, so `bg-surface`, `text-muted` and
+ * `rounded-lg` all resolve from the declarations below.
  */
-html:lang(zh) {
-  font-family:
-    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC",
-    sans-serif;
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-disabled: var(--disabled);
+
+  /* action */
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
+  --color-on-accent: var(--on-accent);
+
+  /* state */
+  --color-lime: var(--lime);
+  --color-lime-soft: var(--lime-soft);
+  --color-lime-ink: var(--lime-ink);
+
+  /* attention */
+  --color-amber: var(--amber);
+  --color-amber-soft: var(--amber-soft);
+  --color-amber-ink: var(--amber-ink);
+
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 26px;
+
+  --shadow-sm: var(--elevation-sm);
+  --shadow-md: var(--elevation-md);
+  --shadow-lg: var(--elevation-lg);
+}
+
+:root {
+  --bg: #f6f8f2;
+  --surface: #ffffff;
+  --surface-2: #eaefe0;
+  --border: #dde3d1;
+
+  --text: #16310c;
+  /* Raised from the mockup's #6b7860, which is 4.38:1 on --bg at 11-13px. */
+  --muted: #5f6c55;
+  --disabled: #b7c0ab;
+
+  --accent: #ff70a9;
+  --accent-2: #f29eaf;
+  --accent-soft: #ffe1ec;
+  --accent-ink: #cf3d80;
+  /* Deep green, not white: white on --accent is 2.58:1 and fails AA. */
+  --on-accent: #16310c;
+
+  --lime: #aec658;
+  --lime-soft: #eef3d9;
+  --lime-ink: #5c6e1e;
+
+  --amber: #c79a2e;
+  --amber-soft: #fdf0d4;
+  --amber-ink: #8a6410;
+
+  --danger: #c0392b;
+  --danger-soft: #fbe6e3;
+
+  /* The green tint is deliberate; it is what keeps surfaces feeling warm. */
+  --elevation-sm: 0 1px 2px rgba(30, 50, 15, 0.06);
+  --elevation-md: 0 6px 20px rgba(30, 50, 15, 0.07);
+  --elevation-lg: 0 22px 60px rgba(20, 40, 10, 0.24);
+
+  --scrim: rgba(22, 49, 12, 0.44);
+  --auth-backdrop: linear-gradient(165deg, #f6f8f2, #e9f0dc);
+}
+
+/*
+ * Dark theme, declared twice on purpose: once for the system preference and
+ * once for an explicit `data-theme="dark"`, so a "follow system" setting can
+ * work later and an explicit choice wins in both directions. A media query
+ * cannot share a declaration block with a plain selector, so the values
+ * repeat. Keep the two blocks in step.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1310;
+    --surface: #191d18;
+    --surface-2: #262c25;
+    --border: #2b3129;
+
+    --text: #f1f4ec;
+    --muted: #97a28e;
+    --disabled: #3a4237;
+
+    --accent-soft: rgba(255, 112, 169, 0.16);
+    --accent-ink: #ff9ec6;
+
+    --lime-soft: rgba(174, 198, 88, 0.16);
+    --lime-ink: #c4de73;
+
+    --amber: #d8b24a;
+    --amber-soft: rgba(216, 178, 74, 0.16);
+    --amber-ink: #e8c977;
+
+    --danger: #e57668;
+    --danger-soft: rgba(229, 118, 104, 0.16);
+
+    /* Neutral black; the tinted light shadow reads as a haze on dark. */
+    --elevation-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --elevation-md: 0 6px 20px rgba(0, 0, 0, 0.35);
+    --elevation-lg: 0 22px 60px rgba(0, 0, 0, 0.55);
+
+    --scrim: rgba(0, 0, 0, 0.55);
+    --auth-backdrop: linear-gradient(165deg, #141a13, #0f1310);
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0f1310;
+  --surface: #191d18;
+  --surface-2: #262c25;
+  --border: #2b3129;
+
+  --text: #f1f4ec;
+  --muted: #97a28e;
+  --disabled: #3a4237;
+
+  --accent-soft: rgba(255, 112, 169, 0.16);
+  --accent-ink: #ff9ec6;
+
+  --lime-soft: rgba(174, 198, 88, 0.16);
+  --lime-ink: #c4de73;
+
+  --amber: #d8b24a;
+  --amber-soft: rgba(216, 178, 74, 0.16);
+  --amber-ink: #e8c977;
+
+  --danger: #e57668;
+  --danger-soft: rgba(229, 118, 104, 0.16);
+
+  --elevation-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --elevation-md: 0 6px 20px rgba(0, 0, 0, 0.35);
+  --elevation-lg: 0 22px 60px rgba(0, 0, 0, 0.55);
+
+  --scrim: rgba(0, 0, 0, 0.55);
+  --auth-backdrop: linear-gradient(165deg, #141a13, #0f1310);
+}
+
+@layer base {
+  body {
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  /*
+   * Geist carries no CJK glyphs, so name the system faces. System fonts only —
+   * a web font for CJK is 2-5 MB per script.
+   */
+  html:lang(zh) {
+    font-family:
+      "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC",
+      sans-serif;
+  }
+
+  /*
+   * PingFang SC tops out at Semibold and Windows synthesises heavier weights
+   * unevenly, so CJK display text is capped at 700.
+   */
+  html:lang(zh) :is(h1, h2, h3, h4) {
+    font-weight: 700;
+  }
+
+  /* The mockups have no focus style at all. */
+  :focus-visible {
+    outline: 2px solid var(--accent-ink);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

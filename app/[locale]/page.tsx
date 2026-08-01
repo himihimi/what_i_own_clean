@@ -30,7 +30,7 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-6 p-8 text-center">
       <h1 className="text-2xl font-bold tracking-tight">{t("name")}</h1>
-      <p className="text-sm text-black/60 dark:text-white/60">{t("tagline")}</p>
+      <p className="text-sm text-muted">{t("tagline")}</p>
 
       <nav aria-label={tSwitcher("label")} className="flex gap-4 text-sm">
         {routing.locales.map((target) => (
