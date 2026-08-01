@@ -8,6 +8,21 @@ security, the AI seam, the intake and assistant flows, testing, milestones.
 
 ---
 
+## UI stack
+
+| Concern | Choice | Note |
+|---|---|---|
+| Styling | Tailwind v4 | tokens as CSS variables, mapped with `@theme inline` |
+| Components | shadcn, Radix base | generated into `components/ui`, then adapted to our tokens |
+| Icons | Lucide | brand marks are local assets; Lucide carries none |
+| Animation | Motion | five duration tokens in `lib/motion.ts` |
+| i18n | next-intl | locale in the URL |
+
+The design tokens in `app/globals.css` are the single palette. shadcn's semantic names are aliases
+onto it rather than a second set of values, so there is one place to change a colour and dark mode
+needs no parallel palette. Two of its names collide with ours and must be fixed by hand on every
+`shadcn add` — see [design.md](./design.md) §6.
+
 ## Entry point and auth gate
 
 `/` is not a page. The proxy resolves a locale, then `/[locale]` decides where the
@@ -32,6 +47,52 @@ the stub is constant. Reading a real session makes it dynamic, which is correct 
 the answer depends on the request.
 
 `welcome` is a placeholder. The real signed-in screen is the library grid at M2.
+
+### Email and password, no third-party identity provider
+
+**Decided: email and password.** Google sign-in has been removed. Login takes email and password;
+signup takes name, email, password and confirm password. The name goes to user metadata on sign-up.
+
+Three stubs in `lib/auth.ts` are the whole surface — `isAuthenticated`, `signIn`, `signUp` — so
+wiring Supabase means replacing that file and nothing else. They currently return
+`{ ok: false, reason: "not-implemented" }`, which the forms render as a form-level alert.
+
+**Validation is zod**, in `lib/validation/auth.ts`. The schemas are built by factories taking already
+translated messages rather than reading them, so validation text is localised without handing the
+translator into the schema and casting next-intl's typed keys away. Client-side validation is a
+courtesy only — as with every other rule in this architecture, the database and the auth service are
+what actually enforce anything.
+
+Sign-in deliberately has **no minimum-length rule**: an existing password predates whatever the
+current rule is, and "too short" would be a lie. Length is enforced on sign-up.
+
+Still to build: email verification, password reset, and rate limiting on both forms.
+
+#### Why no provider is required
+
+Supabase Auth is not a wrapper around Google. It issues its own identities, and the first-party
+options need no other vendor:
+
+| Method | Third party needed |
+|---|---|
+| Email + password | none |
+| Email OTP / magic link | none for identity — only an SMTP sender for the email itself |
+| Anonymous, upgraded later | none |
+| Phone OTP | an SMS provider |
+| Google, Apple, GitHub… | that provider — **optional, not required** |
+
+Google was dropped on exactly that basis: it removed password handling, but nothing depended on it.
+
+**The one thing to plan for with email:** Supabase's built-in SMTP is heavily rate-limited and
+meant for development, so production email needs your own sender configured on the project. That is
+a delivery vendor, not an identity one — the accounts stay ours.
+
+**What is genuinely load-bearing is Supabase Auth issuing the JWT**, because every RLS policy is
+`user_id = auth.uid()` and `auth.uid()` reads a claim from that token. A hand-rolled auth service
+would have to sign tokens with the project's JWT secret to keep RLS working — possible, and a poor
+trade: it puts the security model's foundation in code we maintain, for no gain over email+password
+that Supabase already implements.
+
 
 ---
 

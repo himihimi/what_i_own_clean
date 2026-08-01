@@ -64,6 +64,7 @@ Dark mode follows `prefers-color-scheme` by default and can be forced with `data
 | `accent-ink` | `#cf3d80` | `#ff9ec6` |
 | `on-accent` | `#16310c` | `#16310c` |
 | `lime` / `lime-soft` / `lime-ink` | `#aec658` / `#eef3d9` / `#5c6e1e` | `#aec658` / `rgba(174,198,88,.16)` / `#c4de73` |
+| `lime-glow` | `0 12px 26px rgba(174,198,88,.5)` | same at `.22` — a bright glow reads too strong on dark |
 | `amber` / `amber-soft` / `amber-ink` | `#c79a2e` / `#fdf0d4` / `#8a6410` | `#d8b24a` / `rgba(216,178,74,.16)` / `#e8c977` |
 | `danger` / `danger-soft` | `#c0392b` / `#fbe6e3` | `#e57668` / `rgba(229,118,104,.16)` |
 
@@ -92,6 +93,11 @@ mockups that was taken.
 
 Shadows carry a green tint in light mode (`rgba(30,50,15,…)`) and go neutral-black in dark, where
 the mockup left the tinted shadow in place and it rendered as a haze.
+
+**No component hardcodes a colour.** The one exception is Google's G mark, which must keep its own
+four colours in every theme. Where a surface keeps its colour across themes — the lime logo plate —
+its ink is `on-accent`, not `text`, because `text` inverts in dark mode and light ink on lime is
+about 1.9:1.
 
 ## 4. Radius
 
@@ -147,9 +153,20 @@ secondary text. A generated component using `bg-accent` or `bg-muted` would ther
 dark green where it wanted a light grey. **Every `shadcn add` needs a pass for those two classes** —
 both become `bg-surface-2`. It has already been done for Button and DropdownMenu.
 
+**Check the registry before writing a component.** `pnpm dlx shadcn@latest search @shadcn -q <term>`
+lists what exists; the `@shadcn/` namespace prefix is required. Two traps found so far: `@shadcn/form`
+is an **empty stub** in this registry version — `@shadcn/field` replaced it, and it is deliberately
+form-library-agnostic, taking errors as props — and plain `add form` silently succeeds while creating
+nothing.
+
+In use: `button`, `dropdown-menu`, `input`, `label`, `alert`, `field`, `separator`.
+
 Also changed from the generated files:
 
-- **Sizes move up to a 44px floor** (`default`, `icon`). shadcn ships a 32px pointer-first scale.
+- **Sizes move up to a 44px floor** (`default`, `icon`, `Input`). shadcn ships a 32px pointer-first
+  scale. `Input` also keeps `text-base` instead of shadcn's `md:text-sm`, because 16px is what stops
+  iOS Safari zooming the viewport on focus, and it gets `surface` rather than a transparent fill,
+  since fields sit on the tinted auth backdrop.
 - **Press feedback is `scale(.98)`** in CSS rather than a 1px nudge, so it applies to every button
   without a client boundary. The Motion `press` tokens stay for surfaces that animate for other
   reasons, like cards.
@@ -232,42 +249,51 @@ Rules:
 
 Screens assemble top-down: 60ms between elements, which reads as intentional rather than as lag.
 
-## 10. Login screen
+## 10. Auth screens
 
-Built from `demo.html`'s `.login` block. Full-viewport, single column, centred, capped at 420 px on
-wider screens.
+Two screens, login and signup, sharing one shell in `components/AuthScreen.tsx`: backdrop, logo
+plate, heading, the theme and locale controls, and the terms line. They differ only in heading, form,
+and the link at the bottom. Full-viewport, single column, centred, capped at 420 px on wider screens.
 
 | Element | Spec |
 |---|---|
 | Backdrop | `linear-gradient(165deg, #f4f7ee, #e9f0dc)`, with a dark-mode counterpart |
-| Logo plate | 74×74, radius 22, `lime` fill, `#16310c` glyph at 36px/800, lime glow shadow |
+| Logo plate | 74×74, radius 22, `lime` fill, `on-accent` glyph at 36px/800, `lime-glow` shadow |
 | Title | 26px/800 (700 for CJK), `text` |
 | Subtitle | 14px, `muted` |
-| Google button | `<Button variant="outline" size="lg">`, full width, gap 12, semibold, G mark at 18px |
+| Fields | `<Field>` + `<Input>`, 44px tall, radius `md`, `surface` fill, label as placeholder |
+| Submit | `<Button size="lg">` — pink filled, full width |
+| Form error | `<Alert variant="destructive">` above the fields |
+| Cross link | `accent-ink`, underlined |
 | Terms | 11px, `muted-2` |
 
-**One way in: Continue with Google.** The mockup's email and verification-code fields, its "create
-an account" button, and its guest link are all gone from the screen. Their strings stay translated,
-because email OTP is still the plan — but a second path is not worth showing until one of them
-actually signs somebody in.
+**Email and password.** Login takes email and password; signup takes name, email, password and
+confirm password. There is no third-party sign-in — nothing about the architecture needs one, and
+Supabase Auth issues its own identities. See [architecture.md](./architecture.md).
 
-Departures from the mockup, and why:
+**The pink filled button is back.** While Google's button was the only way in it had to be a light
+surface, because their branding terms do not allow a pink fill. With that gone, the submit button is
+the screen's action and takes the accent, as the two-accent rule says it should.
 
-- **The Google button is a light surface, not the pink primary fill.** Google's branding terms are
-  specific about how their sign-in button may look, and pink is not among the options. This is the
-  one control that does not follow the two-accent rule, and the accent returns to this screen when
-  email OTP does — as the primary action, with Google beneath it.
-- **The G mark is a hand-written SVG**, in `components/icons/GoogleLogo.tsx`. Lucide carries no brand
-  marks, so this is the one place a raw path is right. It keeps Google's four colours in every theme;
-  a brand mark does not inherit our tokens.
-- **No "create an account".** With OAuth, and with email OTP later, a first sign-in creates the
-  account. A separate registration button would lead to the same place.
+**The label is the placeholder**, following the mockup, which shows `邮箱` inside the field rather
+than above it. The `<label>` still exists and is still bound to its input — it is `sr-only`, not
+removed. A placeholder is not an accessible name, and it disappears the moment there is text in the
+field, so a placeholder-only input leaves nothing to identify it by. No example values: a sample
+name or address in a field is one more thing to read and mistake for real content.
+
+Departures from the mockup:
+
+- **A separate signup screen**, rather than the mockup's "register" button next to "log in" on one
+  form. Four fields do not belong on a screen whose job is two.
+- **Validation messages sit under their field**, from zod, and are localised like everything else.
+  A wrong password is not a field error though — it is a form-level `Alert`, because the server, not
+  the shape of the input, is what rejected it.
 - **The guest link is dropped.** "先随便看看" implies browsing without an account, but every row is
   scoped to a user by RLS, so there is nothing for a guest to read.
 - **The terms line is plain text, not links.** There are no terms or privacy pages yet, and a link
   to nowhere is worse than no link.
 
-The button does nothing yet; auth is wired at M1.
+Neither form signs anybody in yet — submitting shows the `Alert` saying so. Auth is wired at M1.
 
 ### Favicon
 
@@ -287,7 +313,8 @@ Non-negotiable, and mostly missing from the mockups.
 - **Tap targets** 44×44 minimum, grown with padding rather than the visual.
 - **Focus** on every interactive element: 2px `accent-ink` outline at 2px offset. The mockups have
   no focus style anywhere.
-- **Labels**, not placeholders alone. Visually hidden where the design has no room.
+- **Labels always exist**, even where the design puts the text inside the field. `sr-only`, bound
+  with `htmlFor` — never a placeholder alone.
 - **Motion** honours `prefers-reduced-motion`.
 - **Theme** via `data-theme` on `:root`, defaulting from `prefers-color-scheme`.
 
