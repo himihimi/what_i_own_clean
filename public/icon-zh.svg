@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="我拥有什么">
+  <!--
+    Same plate as icon-en.svg, carrying the Chinese mark instead. Weight 700
+    rather than 800: PingFang SC tops out at Semibold and Windows synthesises
+    heavier weights unevenly. See docs/design.md.
+  -->
+  <rect width="32" height="32" rx="9" fill="#aec658"/>
+  <text
+    x="16" y="16"
+    fill="#16310c"
+    font-family="'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', sans-serif"
+    font-size="22"
+    font-weight="700"
+    text-anchor="middle"
+    dominant-baseline="central"
+  >物</text>
+</svg>

@@ -31,15 +31,22 @@ export async function generateMetadata({
   params,
 }: LayoutProps<"/[locale]">): Promise<Metadata> {
   const { locale } = await params;
-  const t = await getTranslations({
-    // `params` is typed as a plain string; narrow it to a configured locale.
-    locale: hasLocale(routing.locales, locale) ? locale : routing.defaultLocale,
-    namespace: "app",
-  });
+  // `params` is typed as a plain string; narrow it to a configured locale.
+  const resolved = hasLocale(routing.locales, locale)
+    ? locale
+    : routing.defaultLocale;
+  const t = await getTranslations({ locale: resolved, namespace: "app" });
 
   return {
     title: t("name"),
     description: t("tagline"),
+    // The logo plate carrying that locale's mark: W for English, 物 for Chinese.
+    // SVG rather than a generated PNG, because the glyph is then drawn with the
+    // reader's own system font — ImageResponse ships no CJK font and would
+    // render 物 as an empty box.
+    icons: {
+      icon: [{ url: `/icon-${resolved}.svg`, type: "image/svg+xml" }],
+    },
   };
 }
 
