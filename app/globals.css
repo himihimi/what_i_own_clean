@@ -59,6 +59,7 @@
   --shadow-sm: var(--elevation-sm);
   --shadow-md: var(--elevation-md);
   --shadow-lg: var(--elevation-lg);
+  --shadow-lime-glow: var(--lime-glow);
 
   /*
    * next/font sets these on <html>. Wiring them here is what actually applies
@@ -119,6 +120,8 @@
   --lime: #aec658;
   --lime-soft: #eef3d9;
   --lime-ink: #5c6e1e;
+  /* The logo plate's glow. Its own token because it is lime-tinted, not neutral. */
+  --lime-glow: 0 12px 26px rgba(174, 198, 88, 0.5);
 
   --amber: #c79a2e;
   --amber-soft: #fdf0d4;
@@ -167,6 +170,8 @@
     --lime-soft: rgba(174, 198, 88, 0.16);
     --lime-ink: #c4de73;
 
+    --lime-glow: 0 12px 26px rgba(174, 198, 88, 0.22);
+
     --amber: #d8b24a;
     --amber-soft: rgba(216, 178, 74, 0.16);
     --amber-ink: #e8c977;
@@ -200,6 +205,8 @@
 
   --lime-soft: rgba(174, 198, 88, 0.16);
   --lime-ink: #c4de73;
+
+  --lime-glow: 0 12px 26px rgba(174, 198, 88, 0.22);
 
   --amber: #d8b24a;
   --amber-soft: rgba(216, 178, 74, 0.16);
