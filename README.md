@@ -89,7 +89,7 @@ Seven core tables: `items`, `images`, `item_images`, `locations`, `categories`, 
 | Auth | Supabase Auth — email OTP + Google |
 | Storage | Supabase Storage, private bucket, behind a thin adapter |
 | AI | Gemini Flash via the Vercel AI SDK |
-| i18n | `next-intl`, scaffolded day one, English-only content |
+| i18n | `next-intl` — locale-prefixed routes, English and Chinese |
 | Hosting | Netlify |
 
 ## Getting started

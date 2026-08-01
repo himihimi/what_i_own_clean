@@ -1,0 +1,9 @@
+{
+  "app": {
+    "name": "What I Own",
+    "tagline": "Know what you own, and where you put it."
+  },
+  "localeSwitcher": {
+    "label": "Language"
+  }
+}

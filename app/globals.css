@@ -1,1 +1,13 @@
 @import "tailwindcss";
+
+/*
+ * Per-locale font stack. Geist carries no CJK glyphs, so Chinese would fall
+ * back to whatever the browser picks; this names the system faces instead.
+ * System fonts only — a web font for CJK is 2–5 MB per script.
+ * See docs/design.md.
+ */
+html:lang(zh) {
+  font-family:
+    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC",
+    sans-serif;
+}
