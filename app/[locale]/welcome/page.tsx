@@ -6,7 +6,13 @@ import { LocaleSwitch } from "@/components/LocaleSwitch";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { routing } from "@/i18n/routing";
 
-export default async function Home({ params }: PageProps<"/[locale]">) {
+/**
+ * Where a signed-in visit lands, reached by the redirect in `/[locale]`. Still a
+ * placeholder — the real screen is the library grid at M2.
+ */
+export default async function WelcomePage({
+  params,
+}: PageProps<"/[locale]/welcome">) {
   const { locale } = await params;
   if (!hasLocale(routing.locales, locale)) {
     notFound();
