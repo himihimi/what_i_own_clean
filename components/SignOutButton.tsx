@@ -17,7 +17,7 @@ export function SignOutButton() {
     setPending(true);
     await signOut();
 
-    router.replace("/login");
+    router.replace("/auth/login");
     // Server components were rendered with a session that no longer exists.
     router.refresh();
   }

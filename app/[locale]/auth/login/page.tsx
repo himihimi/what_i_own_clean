@@ -10,7 +10,8 @@ import { LoginForm } from "./LoginForm";
 
 export default async function LoginPage({
   params,
-}: PageProps<"/[locale]/login">) {
+  searchParams,
+}: PageProps<"/[locale]/auth/login">) {
   const { locale } = await params;
   if (!hasLocale(routing.locales, locale)) {
     notFound();
@@ -18,6 +19,8 @@ export default async function LoginPage({
   setRequestLocale(locale);
 
   const t = await getTranslations("login");
+  // Set by /challenge/callback when a confirmation link is expired or already spent.
+  const { error } = await searchParams;
 
   return (
     <AuthScreen
@@ -27,7 +30,7 @@ export default async function LoginPage({
         <>
           {t("noAccount")}{" "}
           <Link
-            href="/signup"
+            href="/auth/signup"
             className="font-semibold text-accent-ink underline underline-offset-4"
           >
             {t("signUpLink")}
@@ -35,7 +38,7 @@ export default async function LoginPage({
         </>
       }
     >
-      <LoginForm />
+      <LoginForm linkError={typeof error === "string" ? error : undefined} />
     </AuthScreen>
   );
 }

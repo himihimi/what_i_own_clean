@@ -1,7 +1,7 @@
 "use client";
 
 import { MailCheck, TriangleAlert } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -28,6 +28,7 @@ export function SignupForm() {
   const tAuth = useTranslations("auth");
   const tErrors = useTranslations("authErrors");
   const router = useRouter();
+  const locale = useLocale();
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -62,7 +63,7 @@ export function SignupForm() {
     setPending(true);
 
     const { confirmPassword: _confirm, ...values } = parsed.data;
-    const result = await signUp(values);
+    const result = await signUp({ ...values, locale });
 
     if (!result.ok) {
       setPending(false);

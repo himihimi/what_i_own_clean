@@ -21,7 +21,7 @@ export async function LegalScreen({ document }: { document: LegalDocument }) {
       <div className="mx-auto w-full max-w-[640px]">
         <Reveal>
           <Link
-            href="/login"
+            href="/auth/login"
             className="inline-flex items-center gap-1.5 text-sm text-muted underline-offset-4 hover:underline"
           >
             <ArrowLeft size={16} aria-hidden="true" />

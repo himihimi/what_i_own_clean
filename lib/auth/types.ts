@@ -2,6 +2,7 @@
 export type AuthFailure =
   | "invalid-credentials"
   | "email-taken"
+  | "email-not-confirmed"
   | "weak-password"
   | "rate-limited"
   | "unknown";
@@ -33,6 +34,7 @@ const codes: Record<string, AuthFailure> = {
   invalid_credentials: "invalid-credentials",
   user_already_exists: "email-taken",
   email_exists: "email-taken",
+  email_not_confirmed: "email-not-confirmed",
   weak_password: "weak-password",
   over_request_rate_limit: "rate-limited",
   over_email_send_rate_limit: "rate-limited",
@@ -54,5 +56,12 @@ export function retryAfterSeconds(
   error: { message?: string } | null,
 ): number | undefined {
   const match = error?.message?.match(/(\d+)\s*second/i);
-  return match ? Number(match[1]) : undefined;
+  if (!match) {
+    return undefined;
+  }
+
+  // Supabase really does say "after 0 seconds" when the window has just closed.
+  // Naming that number would read as nonsense, so fall back to the generic wait.
+  const seconds = Number(match[1]);
+  return seconds > 0 ? seconds : undefined;
 }

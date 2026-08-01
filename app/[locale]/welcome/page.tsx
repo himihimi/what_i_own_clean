@@ -9,6 +9,7 @@ import { SignOutButton } from "@/components/SignOutButton";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { redirect } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
+import { authPaths } from "@/lib/auth/routes";
 import { currentUser } from "@/lib/auth/server";
 
 /**
@@ -32,7 +33,7 @@ export default async function WelcomePage({
 
   const user = await currentUser();
   if (!user) {
-    return redirect({ href: "/login", locale });
+    return redirect({ href: authPaths.login, locale });
   }
 
   const t = await getTranslations("account");

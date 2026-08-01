@@ -23,28 +23,56 @@ onto it rather than a second set of values, so there is one place to change a co
 needs no parallel palette. Two of its names collide with ours and must be fixed by hand on every
 `shadcn add` — see [design.md](./design.md) §6.
 
-## Entry point and auth gate
+## Route groups and the auth guard
 
-`/` is not a page. The proxy resolves a locale, then `/[locale]` decides where the
-visit goes and renders nothing itself:
+Three groups, defined once in `lib/auth/routes.ts` and enforced once in `proxy.ts`.
 
-| Signed in | Lands on |
-|---|---|
-| yes | `/[locale]/welcome` |
-| no | `/[locale]/login` |
+| Group | Paths | Rule |
+|---|---|---|
+| `auth` | `/{locale}/auth/*` — login, signup, forgot-password | for signed-out visitors; a signed-in one is sent to `/welcome` |
+| `challenge` | `/challenge/callback`, `/{locale}/challenge/*` | reached from an emailed link, so allowed in either state |
+| `public` | `/{locale}/privacy`, `/terms` | readable by anyone |
+| `protected` | everything else under `/{locale}` | needs a session, or it redirects to login |
 
-The redirect comes from next-intl's navigation rather than `next/navigation`, so
-the locale prefix survives and someone on `/zh` is not bounced to the English
-login.
+| | signed out | signed in |
+|---|---|---|
+| `/en` | → `/en/auth/login` | → `/en/welcome` |
+| `/en/welcome` | → `/en/auth/login` | renders |
+| `/en/auth/login` | renders | → `/en/welcome` |
+| `/en/challenge/update-password` | → `/en/auth/forgot-password` | renders |
+| `/en/privacy` | renders | renders |
 
-**`isAuthenticated()` in `lib/auth.ts` is a stub returning false**, so every visit
-currently lands on login. It is the single place every auth question goes through,
-so wiring Supabase at M1 means replacing one function — where it becomes a session
-read from a client built on the caller's JWT.
+**`challenge` is a group of its own for one reason:** setting a new password happens *while signed
+in* — the emailed link is what created the session. Treating it as a signed-out screen would bounce
+the visitor to the app before they could finish; treating it as protected would be wrong for a link
+that has expired. Its own guard is the session check inside `/challenge/update-password`.
 
-One consequence to expect: `/[locale]` is statically prerenderable today because
-the stub is constant. Reading a real session makes it dynamic, which is correct —
-the answer depends on the request.
+**The guard lives in the proxy** because the session is already being revalidated there for the
+refresh, so it costs nothing extra, and one rule in one place beats a check at the top of every page.
+It is a redirect for the visitor's benefit, **not** the security boundary — that is row-level security
+in Postgres, which does not care what the proxy decides.
+
+Two ordering constraints that are easy to get wrong, both found by testing:
+
+- **Stray emailed links are caught before the guard.** A link whose `redirect_to` was not
+  allow-listed lands on the Site URL with its one-time `code` in the query. The visitor has no
+  session yet, so guarding first would send them to sign-in and spend the code for nothing.
+- **Only the locale root and challenge routes are treated as landing spots.** Reading `?error` on
+  every path loops: the auth screens are where a dead link's error is *displayed*, so re-reading it
+  there redirects the request to itself.
+
+## Entry point
+
+`/` is not a page: the proxy resolves a locale, then the guard above decides. `/[locale]` renders
+nothing and only forwards to `/welcome` — reached in practice only with a session, since the guard
+has already turned a signed-out visitor away.
+
+Redirects inside the app come from next-intl's navigation rather than `next/navigation`, so the
+locale prefix survives and someone on `/zh` is not bounced to an English screen. The exception is
+`/challenge/callback`, which has no locale by design.
+
+Reading the session makes these routes dynamic, which is correct — the answer depends on who is
+asking.
 
 `welcome` is a placeholder. The real signed-in screen is the library grid at M2.
 
@@ -104,13 +132,16 @@ signup takes name, email, password and confirm password. The name goes to user m
 | `lib/auth/client.ts` | `signIn`, `signUp`, `signOut` — called from the browser |
 | `lib/auth/server.ts` | `currentUser`, `isAuthenticated` — reads the request's session |
 | `lib/auth/types.ts` | the failure union and the Supabase error-code mapping |
+| `lib/auth/messages.ts` | failure reason to message key, shared by all four forms |
+| `lib/auth/routes.ts` | every auth path, and which group each route belongs to |
+| `lib/auth/redirect.ts` | resolving and validating an emailed link's destination |
+| `lib/auth/recoveryLanding.ts` | reading a stray `code` or error out of a query string |
 
 The name given at sign-up goes to `user_metadata.name` on the identity, not to a table of ours — it
 belongs to the user, not the inventory.
 
-`/[locale]/welcome` checks the session itself rather than trusting the redirect at `/[locale]`: the
-URL can be typed directly, and a screen that greets someone by name should not render without
-knowing whose name it is.
+`/[locale]/welcome` still reads the session itself, because it needs the user to greet them — the
+guard in the proxy decides *whether* they may be there, not *who* they are.
 
 **Validation is zod**, in `lib/validation/auth.ts`. The schemas are built by factories taking already
 translated messages rather than reading them, so validation text is localised without handing the
@@ -121,13 +152,63 @@ what actually enforce anything.
 Sign-in deliberately has **no minimum-length rule**: an existing password predates whatever the
 current rule is, and "too short" would be a lie. Length is enforced on sign-up.
 
+#### Sign-up confirmation
+
+`/challenge/callback` serves both emailed links. Confirming an address exchanges the code for a session
+and lands on `/welcome` already signed in, which closes the cycle. A dead confirmation link goes to
+**login** with "That link has expired", not to the reset screen — signing in is where that person
+needs to end up. A dead reset link still goes to `/forgot-password`, which is the screen that sends a
+new one; the callback picks the destination from what `next` was aiming at.
+
+**An unconfirmed address cannot sign in.** Supabase enforces it — `signInWithPassword` returns
+`email_not_confirmed` — so all that was needed was to say so instead of showing "Something went
+wrong". Verified against a stack with confirmations on: 400, `email_not_confirmed`, no session.
+
+**And that refusal offers a way out.** Telling someone to "open the link we sent you" is useless once
+that link has expired: they cannot sign in, and the link is dead. So a refusal for an unconfirmed
+address reveals a **resend** on the sign-in screen, at the moment it happens, and the confirmation
+redirect is built by one shared helper so a resent link cannot land somewhere different from the
+original. Verified: resend returns a fresh `type=signup` link whose `redirect_to` is the callback.
+
+**A dead link is reported by Supabase in the query, not as a failing code.** It arrives as
+`error=access_denied` with an `error_code`, so a callback that only looked for `code` called every
+expired link "invalid" — a different thing to the person holding it. The callback now reads both:
+
+| Callback receives | Lands on |
+|---|---|
+| `code` that exchanges | the destination, signed in |
+| `error_code=otp_expired` | `…?error=expired` — "That link has expired" |
+| any other error, or nothing | `…?error=link` — "That link is not valid" |
+
+One detail worth keeping: Supabase's rate-limit message can say **"after 0 seconds"** when the window
+has just closed. `retryAfterSeconds` discards a zero, so the UI falls back to the generic wait rather
+than telling someone to try again in no time at all.
+
+#### Locale for links that cannot carry one
+
+Links this app builds set the locale themselves — the browser knows it when the email is requested —
+so `next` normally arrives already localised. Resolution exists for links it did not build: a redirect
+URL registered in the Supabase dashboard is one fixed string for everybody and cannot contain `/en`
+or `/zh`. `resolveNext` in `lib/auth/redirect.ts`:
+
+| `next` | Resolves to |
+|---|---|
+| `/en/welcome` | used as-is |
+| `/welcome` | prefixed with the resolved locale |
+| missing, or not a same-site path | `/{locale}/welcome` |
+
+The locale comes from next-intl's `NEXT_LOCALE` cookie when the reader has chosen one, and English
+otherwise. An unrecognised cookie value falls back to English rather than being trusted. Anything
+that is not a same-site path — `//host`, `/\host`, an absolute URL — is discarded in favour of
+`/{locale}/welcome`.
+
 #### Password reset
 
-`/forgot-password` → email → `/auth/callback` → `/update-password`.
+`/auth/forgot-password` → email → `/challenge/callback` → `/challenge/update-password`.
 
-**`/auth/callback` has no locale segment**, because the redirect URL registered with Supabase cannot
+**`/challenge/callback` has no locale segment**, because the redirect URL registered with Supabase cannot
 vary per language. The locale travels in a `next` parameter, and `proxy.ts` excludes `auth` from the
-i18n matcher — otherwise next-intl rewrites the callback to `/en/auth/callback`, which does not exist
+matcher — otherwise next-intl rewrites the callback to `/en/challenge/callback`, which does not exist
 and silently breaks every emailed link.
 
 `next` is validated by `isSafeNext` in `lib/auth/redirect.ts` rather than trusted. It arrives from a
@@ -137,9 +218,21 @@ accepted; `//host` and `/\host` are rejected explicitly, since both leave the si
 with a slash. The function takes its locales as an argument so it has no module graph and can be
 tested on its own.
 
-**`/update-password` requires a session**, which is what the emailed link establishes. Without one
+**`/challenge/update-password` requires a session**, which is what the emailed link establishes. Without one
 there is nothing to update, so it redirects to `/forgot-password` — which is also what happens when
 the URL is opened directly or the link has already been spent.
+
+**A link does not always land on `/challenge/callback`.** If `redirect_to` is not on the project's
+allow-list, Supabase falls back to the Site URL and the one-time `code` arrives at the site root
+instead. `lib/auth/recoveryLanding.ts` reads it wherever it lands — the locale entry point and
+`/challenge/update-password` both check — and forwards it to the callback, which owns the exchange. Without
+that the code was silently dropped and the visitor got the login screen, with no hint that their
+reset link had been spent for nothing.
+
+The same read catches Supabase's failure parameters (`error`, `error_code`), so an expired link ends
+on `/forgot-password` showing *"That link has expired. Request a new one."* rather than a blank
+login screen. `otp_expired` reads as expired; anything else reads as malformed, because those are
+different things to the person holding the link.
 
 Two things learned the hard way while testing this against the local stack, both of which look like
 application bugs and are not:

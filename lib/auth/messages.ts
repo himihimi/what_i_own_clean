@@ -7,6 +7,7 @@ import type { AuthFailure } from "./types";
 export const authErrorKeys = {
   "invalid-credentials": "invalidCredentials",
   "email-taken": "emailTaken",
+  "email-not-confirmed": "emailNotConfirmed",
   "weak-password": "weakPassword",
   "rate-limited": "rateLimited",
   unknown: "unknown",

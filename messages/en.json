@@ -27,6 +27,9 @@
     "submit": "Log in",
     "submitting": "Logging in…",
     "forgotPasswordLink": "Forgot your password?",
+    "resend": "Send a new confirmation link",
+    "resending": "Sending…",
+    "linkSent": "A new link is on its way to {email}. Open it to finish signing in.",
     "noAccount": "No account yet?",
     "signUpLink": "Create one"
   },
@@ -78,6 +81,7 @@
     "passwordMismatch": "Both passwords must match.",
     "invalidCredentials": "That email and password do not match an account.",
     "emailTaken": "An account with that email already exists.",
+    "emailNotConfirmed": "Confirm your email address first — open the link we sent you.",
     "weakPassword": "Choose a stronger password.",
     "rateLimited": "Too many attempts. Wait a moment and try again.",
     "rateLimitedSeconds": "Too many attempts. Try again in {seconds} seconds.",

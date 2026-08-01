@@ -10,7 +10,7 @@ import { SignupForm } from "./SignupForm";
 
 export default async function SignupPage({
   params,
-}: PageProps<"/[locale]/signup">) {
+}: PageProps<"/[locale]/auth/signup">) {
   const { locale } = await params;
   if (!hasLocale(routing.locales, locale)) {
     notFound();
@@ -27,7 +27,7 @@ export default async function SignupPage({
         <>
           {t("haveAccount")}{" "}
           <Link
-            href="/login"
+            href="/auth/login"
             className="font-semibold text-accent-ink underline underline-offset-4"
           >
             {t("logInLink")}

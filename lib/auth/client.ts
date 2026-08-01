@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 
+import { authPaths } from "./routes";
 import { retryAfterSeconds, toFailure, type AuthResult } from "./types";
 
 /**
@@ -9,6 +10,15 @@ import { retryAfterSeconds, toFailure, type AuthResult } from "./types";
  * lib/supabase/client.ts — so a server component can read it on the next
  * request without the client handing anything over.
  */
+
+/**
+ * Where a confirmation link comes back to. Shared so sign-up and a resend cannot
+ * drift apart — a resent link landing somewhere else would be its own bug.
+ */
+function confirmationRedirect(locale: string): string {
+  const next = encodeURIComponent(`/${locale}${authPaths.home}`);
+  return `${window.location.origin}${authPaths.callback}?next=${next}`;
+}
 
 /** Every failure path goes through here, so none of them can forget the wait. */
 function failed(error: { code?: string; message?: string }): AuthResult {
@@ -33,14 +43,29 @@ export async function signUp(values: {
   name: string;
   email: string;
   password: string;
+  locale: string;
 }): Promise<AuthResult> {
   const supabase = createClient();
   const { data, error } = await supabase.auth.signUp({
     email: values.email,
     password: values.password,
-    // The name is the user's, not the app's, so it lives on the identity rather
-    // than in a table of ours. It surfaces as `user.user_metadata.name`.
-    options: { data: { name: values.name } },
+    options: {
+      // The name is the user's, not the app's, so it lives on the identity
+      // rather than in a table of ours. It surfaces as
+      // `user.user_metadata.name`.
+      data: { name: values.name },
+      /*
+       * Where the confirmation link comes back to. Set here rather than left to
+       * the project's Site URL, so confirming an address lands on the welcome
+       * screen — already signed in, cycle complete — instead of the site root.
+       *
+       * The locale is included because the browser knows it at this moment. The
+       * callback can still resolve one from the reader's stored preference, which
+       * is what covers links it did not build — a URL configured in the Supabase
+       * dashboard is one fixed string and cannot carry a language.
+       */
+      emailRedirectTo: confirmationRedirect(values.locale),
+    },
   });
 
   if (error) {
@@ -68,6 +93,29 @@ export async function signUp(values: {
   return { ok: true, confirmationRequired: true };
 }
 
+/**
+ * Sends the confirmation link again.
+ *
+ * A confirmation link expires, and once it has, telling someone to "open the link
+ * we sent you" is useless — the link they have is dead and sign-in refuses them.
+ * This is the way out of that corner, offered from the sign-in screen at the
+ * moment it happens.
+ */
+export async function resendConfirmation(values: {
+  email: string;
+  locale: string;
+}): Promise<AuthResult> {
+  const supabase = createClient();
+
+  const { error } = await supabase.auth.resend({
+    type: "signup",
+    email: values.email,
+    options: { emailRedirectTo: confirmationRedirect(values.locale) },
+  });
+
+  return error ? failed(error) : { ok: true };
+}
+
 export async function signOut(): Promise<void> {
   const supabase = createClient();
   await supabase.auth.signOut();
@@ -76,7 +124,7 @@ export async function signOut(): Promise<void> {
 /**
  * Sends a reset link.
  *
- * `redirectTo` points at /auth/callback — a fixed, allow-listed URL that cannot
+ * `redirectTo` points at /challenge/callback — a fixed, allow-listed URL that cannot
  * vary per locale, so the language rides along in `next` and the callback
  * forwards there once the link has been exchanged for a session.
  *
@@ -90,10 +138,10 @@ export async function requestPasswordReset(values: {
   locale: string;
 }): Promise<AuthResult> {
   const supabase = createClient();
-  const next = `/${values.locale}/update-password`;
+  const next = `/${values.locale}${authPaths.updatePassword}`;
 
   const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
-    redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+    redirectTo: `${window.location.origin}${authPaths.callback}?next=${encodeURIComponent(next)}`,
   });
 
   return error ? failed(error) : { ok: true };
