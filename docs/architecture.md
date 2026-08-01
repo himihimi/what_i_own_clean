@@ -8,6 +8,33 @@ security, the AI seam, the intake and assistant flows, testing, milestones.
 
 ---
 
+## Entry point and auth gate
+
+`/` is not a page. The proxy resolves a locale, then `/[locale]` decides where the
+visit goes and renders nothing itself:
+
+| Signed in | Lands on |
+|---|---|
+| yes | `/[locale]/welcome` |
+| no | `/[locale]/login` |
+
+The redirect comes from next-intl's navigation rather than `next/navigation`, so
+the locale prefix survives and someone on `/zh` is not bounced to the English
+login.
+
+**`isAuthenticated()` in `lib/auth.ts` is a stub returning false**, so every visit
+currently lands on login. It is the single place every auth question goes through,
+so wiring Supabase at M1 means replacing one function — where it becomes a session
+read from a client built on the caller's JWT.
+
+One consequence to expect: `/[locale]` is statically prerenderable today because
+the stub is constant. Reading a real session makes it dynamic, which is correct —
+the answer depends on the request.
+
+`welcome` is a placeholder. The real signed-in screen is the library grid at M2.
+
+---
+
 ## Internationalization
 
 `next-intl`, with the **locale carried in the URL** — `/en/library`, `/zh/library`.

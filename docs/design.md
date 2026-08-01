@@ -101,8 +101,8 @@ Six steps, down from fourteen distinct values across the mockups.
 |---|---|---|
 | `xs` | 6px | tags |
 | `sm` | 10px | mini fields, small buttons |
-| `md` | 14px | inputs, thumbnail plates, icon tiles |
-| `lg` | 18px | item cards, module cards, buttons |
+| `md` | 14px | inputs, buttons, thumbnail plates, icon tiles |
+| `lg` | 18px | item cards, module cards, dropdown panels |
 | `xl` | 26px | bottom sheet, hero image |
 | `full` | 999px | pills, chips, avatars |
 
@@ -118,7 +118,50 @@ the rest as an uneven, slightly blurry bold. Latin headings may use 800.
 
 **11 px is the floor**, everywhere. The mockups render tags at 10 px.
 
-## 6. Icons
+## 6. Components: shadcn on our tokens
+
+Components come from **shadcn** (`components/ui`, Radix base, Nova preset — Lucide and Geist, which
+is already our stack). They are generated into the repo, so they are ours to edit, and they get
+edited on arrival.
+
+**Our palette stays the source of truth.** `shadcn init` wrote its own neutral palette into
+`globals.css` and overwrote three of our tokens — `--accent`, `--muted` and `--border`. What is
+there now instead: our values, plus shadcn's semantic names defined as *aliases* onto them, so
+generated components inherit our colours and dark mode keeps working through the one set of
+variables rather than a second `.dark` palette.
+
+| shadcn name | resolves to |
+|---|---|
+| `background` / `foreground` | `bg` / `text` |
+| `card`, `popover` | `surface` |
+| `primary` / `primary-foreground` | `accent` / `on-accent` |
+| `secondary` | `surface-2` |
+| `muted-foreground` | `muted` |
+| `input` | `border` |
+| `ring` | `accent-ink` |
+| `destructive` | `danger` |
+
+**Two names collide and are deliberately left undefined:** shadcn's `accent` means a hover surface
+where ours means the pink action colour, and shadcn's `muted` is a background where ours is
+secondary text. A generated component using `bg-accent` or `bg-muted` would therefore paint pink or
+dark green where it wanted a light grey. **Every `shadcn add` needs a pass for those two classes** —
+both become `bg-surface-2`. It has already been done for Button and DropdownMenu.
+
+Also changed from the generated files:
+
+- **Sizes move up to a 44px floor** (`default`, `icon`). shadcn ships a 32px pointer-first scale.
+- **Press feedback is `scale(.98)`** in CSS rather than a 1px nudge, so it applies to every button
+  without a client boundary. The Motion `press` tokens stay for surfaces that animate for other
+  reasons, like cards.
+- **`dark:` is retargeted.** shadcn writes `&:is(.dark *)`; the theme is set with `data-theme` here,
+  so the custom variant points at that instead. Our own code should not need `dark:` — the tokens
+  flip.
+- **Geist is finally applied.** `--font-sans` now maps to the `next/font` variable, which shadcn's
+  `html { @apply font-sans }` revealed was never wired up: the font was being loaded and ignored.
+
+Buttons use radius `md`.
+
+## 7. Icons
 
 **Lucide** (`lucide-react`) is the icon set. Every icon comes from it — no hand-drawn SVG paths in
 components, so stroke weight, corner style, and optical size stay consistent as screens are added.
@@ -130,7 +173,7 @@ coming from the control's own label.
 Lucide dropped brand marks, so a Google or Apple logo has to be a local asset rather than an
 import.
 
-## 7. Controls: theme and locale
+## 8. Controls: theme and locale
 
 Both live on the login screen, top right, before sign-in — someone who cannot read the current
 language cannot go looking for a setting inside an account they do not have yet. They are absolutely
@@ -148,16 +191,19 @@ Because the script mutates `<html>` before hydration, that element carries `supp
 The button reads the theme through `useSyncExternalStore`, so it renders from browser state
 directly instead of correcting itself in an effect, and a change in another tab moves this one too.
 
-**Locale switch.** A segmented pill following `demo.html`'s `.lang-switch`: `surface` fill, 1px
-`border`, `full` radius, 44px tall buttons, each language named in its own language (`EN`, `中文`).
-The active segment is `accent` fill with `on-accent` text. Two locales fit in a pill; a dropdown
-would hide half the choice behind a tap.
+**Locale switch.** A dropdown whose trigger is the *same* round icon button as the theme toggle —
+Lucide `Languages` — so the two read as one cluster rather than two unrelated controls. Items name
+each language in its own language, with a `Check` against the current one.
+
+This replaced the segmented pill from `demo.html`'s `.lang-switch`. The pill showed both choices at
+once, which is nicer for two locales, but it grows with every locale added and it sat visually
+apart from the toggle beside it. A menu does neither.
 
 Switching goes through next-intl's router with the **current pathname**, so it preserves the page
 you are on. It uses `replace`, so the back button means "the page before" rather than "this page in
 the other language".
 
-## 8. Motion
+## 9. Motion
 
 **Motion** (`motion/react`, formerly Framer Motion) drives animation. Tokens live in
 `lib/motion.ts`; anything that animates picks one of five durations rather than inventing its own.
@@ -186,7 +232,7 @@ Rules:
 
 Screens assemble top-down: 60ms between elements, which reads as intentional rather than as lag.
 
-## 9. Login screen
+## 10. Login screen
 
 Built from `demo.html`'s `.login` block. Full-viewport, single column, centred, capped at 420 px on
 wider screens.
@@ -197,7 +243,7 @@ wider screens.
 | Logo plate | 74×74, radius 22, `lime` fill, `#16310c` glyph at 36px/800, lime glow shadow |
 | Title | 26px/800 (700 for CJK), `text` |
 | Subtitle | 14px, `muted` |
-| Google button | full width, padding 16, radius `md`, 1px `border`, `surface` fill, `text` at 15px/600, G mark at 18px, gap 12 |
+| Google button | `<Button variant="outline" size="lg">`, full width, gap 12, semibold, G mark at 18px |
 | Terms | 11px, `muted-2` |
 
 **One way in: Continue with Google.** The mockup's email and verification-code fields, its "create
@@ -233,7 +279,7 @@ would render as an empty box unless a font file were bundled, while an SVG favic
 glyph against the reader's own system fonts. The trade is that a very old browser gets no icon —
 `favicon.ico` and `apple-touch-icon.png` still need making from real brand assets.
 
-## 10. Accessibility floor
+## 11. Accessibility floor
 
 Non-negotiable, and mostly missing from the mockups.
 
@@ -245,7 +291,7 @@ Non-negotiable, and mostly missing from the mockups.
 - **Motion** honours `prefers-reduced-motion`.
 - **Theme** via `data-theme` on `:root`, defaulting from `prefers-color-scheme`.
 
-## 11. Still to write
+## 12. Still to write
 
 Space scale, elevation, motion tokens, component specs beyond login (item card, status pill, tag,
 chip, bottom sheet, tab bar, chat bubbles, module card), empty and error states, the thumbnail
