@@ -15,6 +15,7 @@
 
   --color-text: var(--text);
   --color-muted: var(--muted);
+  --color-muted-2: var(--muted-2);
   --color-disabled: var(--disabled);
 
   /* action */
@@ -49,14 +50,16 @@
 }
 
 :root {
-  --bg: #f6f8f2;
+  --bg: #f4f7ee;
   --surface: #ffffff;
   --surface-2: #eaefe0;
   --border: #dde3d1;
 
   --text: #16310c;
-  /* Raised from the mockup's #6b7860, which is 4.38:1 on --bg at 11-13px. */
-  --muted: #5f6c55;
+  /* Secondary text and ghost-button labels. 4.32:1 on --bg; see docs/design.md. */
+  --muted: #6b7860;
+  /* Tertiary: the terms and privacy line. 2.98:1 on --bg. */
+  --muted-2: #8a9280;
   --disabled: #b7c0ab;
 
   --accent: #ff70a9;
@@ -83,7 +86,7 @@
   --elevation-lg: 0 22px 60px rgba(20, 40, 10, 0.24);
 
   --scrim: rgba(22, 49, 12, 0.44);
-  --auth-backdrop: linear-gradient(165deg, #f6f8f2, #e9f0dc);
+  --auth-backdrop: linear-gradient(165deg, #f4f7ee, #e9f0dc);
 }
 
 /*
@@ -102,6 +105,7 @@
 
     --text: #f1f4ec;
     --muted: #97a28e;
+    --muted-2: #7d8874;
     --disabled: #3a4237;
 
     --accent-soft: rgba(255, 112, 169, 0.16);
@@ -135,6 +139,7 @@
 
   --text: #f1f4ec;
   --muted: #97a28e;
+  --muted-2: #7d8874;
   --disabled: #3a4237;
 
   --accent-soft: rgba(255, 112, 169, 0.16);
