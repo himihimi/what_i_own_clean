@@ -9,18 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { signIn } from "@/lib/auth/client";
-import type { AuthFailure } from "@/lib/auth/types";
+import { authErrorKeys } from "@/lib/auth/messages";
 import { fieldErrors, loginSchema } from "@/lib/validation/auth";
 import { Link, useRouter } from "@/i18n/navigation";
-
-/** Maps a failure reason to its message key, so no reason renders as raw text. */
-const errorKeys = {
-  "invalid-credentials": "invalidCredentials",
-  "email-taken": "emailTaken",
-  "weak-password": "weakPassword",
-  "rate-limited": "rateLimited",
-  unknown: "unknown",
-} as const satisfies Record<AuthFailure, string>;
 
 export function LoginForm() {
   const t = useTranslations("login");
@@ -58,7 +49,11 @@ export function LoginForm() {
 
     if (!result.ok) {
       setPending(false);
-      setFormError(tErrors(errorKeys[result.reason]));
+      setFormError(
+        result.retryAfterSeconds !== undefined && result.reason === "rate-limited"
+          ? tErrors("rateLimitedSeconds", { seconds: result.retryAfterSeconds })
+          : tErrors(authErrorKeys[result.reason]),
+      );
       return;
     }
 

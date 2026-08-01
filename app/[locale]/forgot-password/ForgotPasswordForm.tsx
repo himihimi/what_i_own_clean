@@ -9,16 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { requestPasswordReset } from "@/lib/auth/client";
-import type { AuthFailure } from "@/lib/auth/types";
+import { authErrorKeys } from "@/lib/auth/messages";
 import { fieldErrors, forgotPasswordSchema } from "@/lib/validation/auth";
-
-const errorKeys = {
-  "invalid-credentials": "invalidCredentials",
-  "email-taken": "emailTaken",
-  "weak-password": "weakPassword",
-  "rate-limited": "rateLimited",
-  unknown: "unknown",
-} as const satisfies Record<AuthFailure, string>;
 
 export function ForgotPasswordForm({ linkError }: { linkError?: string }) {
   const t = useTranslations("forgotPassword");
@@ -62,7 +54,11 @@ export function ForgotPasswordForm({ linkError }: { linkError?: string }) {
 
     setPending(false);
     if (!result.ok) {
-      setFormError(tErrors(errorKeys[result.reason]));
+      setFormError(
+        result.retryAfterSeconds !== undefined && result.reason === "rate-limited"
+          ? tErrors("rateLimitedSeconds", { seconds: result.retryAfterSeconds })
+          : tErrors(authErrorKeys[result.reason]),
+      );
       return;
     }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { TriangleAlert } from "lucide-react";
+import { MailCheck, TriangleAlert } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
@@ -14,28 +14,26 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { signUp } from "@/lib/auth/client";
-import type { AuthFailure } from "@/lib/auth/types";
-import { PASSWORD_MIN, fieldErrors, signupSchema } from "@/lib/validation/auth";
 import { useRouter } from "@/i18n/navigation";
-
-const errorKeys = {
-  "invalid-credentials": "invalidCredentials",
-  "email-taken": "emailTaken",
-  "weak-password": "weakPassword",
-  "rate-limited": "rateLimited",
-  unknown: "unknown",
-} as const satisfies Record<AuthFailure, string>;
+import { signUp } from "@/lib/auth/client";
+import { authErrorKeys } from "@/lib/auth/messages";
+import {
+  PASSWORD_MIN,
+  fieldErrors,
+  signupSchema,
+} from "@/lib/validation/auth";
 
 export function SignupForm() {
   const t = useTranslations("signup");
   const tAuth = useTranslations("auth");
   const tErrors = useTranslations("authErrors");
-
   const router = useRouter();
+
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  /** Set when the project wants the address confirmed before first sign-in. */
+  const [awaitingEmail, setAwaitingEmail] = useState<string | null>(null);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -68,15 +66,46 @@ export function SignupForm() {
 
     if (!result.ok) {
       setPending(false);
-      setFormError(tErrors(errorKeys[result.reason]));
+      setFormError(
+        result.retryAfterSeconds !== undefined && result.reason === "rate-limited"
+          ? tErrors("rateLimitedSeconds", { seconds: result.retryAfterSeconds })
+          : tErrors(authErrorKeys[result.reason]),
+      );
+      return;
+    }
+
+    // No session means the address has to be confirmed first. The account exists
+    // either way, so this is a step in the flow, not a failure.
+    if (result.confirmationRequired) {
+      setPending(false);
+      setAwaitingEmail(values.email);
       return;
     }
 
     // Stays pending through the navigation: re-enabling the button here would
     // invite a second submit while the next screen is still rendering.
     router.replace("/welcome");
-    // The session arrived after any prefetch of /welcome, so drop that cache.
     router.refresh();
+  }
+
+  /*
+   * Deliberately says a link was sent, not that an account was created. Supabase
+   * returns this same outcome for an address that already has one, so that
+   * sign-up cannot be used to find out who is registered — and this screen must
+   * not give that away either.
+   */
+  if (awaitingEmail) {
+    return (
+      <div className="mt-8 w-full text-left">
+        <Alert>
+          <MailCheck aria-hidden="true" />
+          <AlertDescription>
+            {t("checkInbox", { email: awaitingEmail })}
+          </AlertDescription>
+        </Alert>
+        <p className="mt-3 text-xs text-muted">{t("inboxHint")}</p>
+      </div>
+    );
   }
 
   return (

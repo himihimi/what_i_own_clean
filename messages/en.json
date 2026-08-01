@@ -49,7 +49,9 @@
     "submit": "Create account",
     "submitting": "Creating account…",
     "haveAccount": "Already have an account?",
-    "logInLink": "Log in"
+    "logInLink": "Log in",
+    "checkInbox": "Check {email} for a link to confirm your address. Open it to finish signing in.",
+    "inboxHint": "No email after a minute? Check the spam folder, or try again."
   },
   "account": {
     "greeting": "Hello, {name}",
@@ -78,6 +80,7 @@
     "emailTaken": "An account with that email already exists.",
     "weakPassword": "Choose a stronger password.",
     "rateLimited": "Too many attempts. Wait a moment and try again.",
+    "rateLimitedSeconds": "Too many attempts. Try again in {seconds} seconds.",
     "linkExpired": "That link has expired. Request a new one.",
     "linkInvalid": "That link is not valid. Request a new one.",
     "unknown": "Something went wrong. Try again."

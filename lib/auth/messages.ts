@@ -1,0 +1,15 @@
+import type { AuthFailure } from "./types";
+
+/**
+ * Failure reason to message key. Every form uses this, so a new reason cannot be
+ * added without every screen learning how to say it.
+ */
+export const authErrorKeys = {
+  "invalid-credentials": "invalidCredentials",
+  "email-taken": "emailTaken",
+  "weak-password": "weakPassword",
+  "rate-limited": "rateLimited",
+  unknown: "unknown",
+} as const satisfies Record<AuthFailure, string>;
+
+export type AuthErrorKey = (typeof authErrorKeys)[AuthFailure];

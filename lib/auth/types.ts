@@ -6,7 +6,22 @@ export type AuthFailure =
   | "rate-limited"
   | "unknown";
 
-export type AuthResult = { ok: true } | { ok: false; reason: AuthFailure };
+export type AuthResult =
+  | {
+      ok: true;
+      /**
+       * Sign-up succeeded but returned no session, because the project requires
+       * the address to be confirmed first. The caller shows "check your inbox"
+       * rather than navigating into the app.
+       */
+      confirmationRequired?: boolean;
+    }
+  | {
+      ok: false;
+      reason: AuthFailure;
+      /** Present when the provider says how long to wait. */
+      retryAfterSeconds?: number;
+    };
 
 /**
  * Supabase error codes mapped to our reasons. Anything unrecognised becomes
@@ -25,4 +40,19 @@ const codes: Record<string, AuthFailure> = {
 
 export function toFailure(error: { code?: string } | null): AuthFailure {
   return (error?.code && codes[error.code]) || "unknown";
+}
+
+/**
+ * Digs the wait out of a rate-limit message — "you can only request this after
+ * 44 seconds" — so the UI can name a real number instead of saying "a while",
+ * which the copy rules in docs/design.md rule out.
+ *
+ * Parsing prose is brittle by nature, so this is strictly a nicety: no match
+ * simply means the generic message is shown.
+ */
+export function retryAfterSeconds(
+  error: { message?: string } | null,
+): number | undefined {
+  const match = error?.message?.match(/(\d+)\s*second/i);
+  return match ? Number(match[1]) : undefined;
 }
