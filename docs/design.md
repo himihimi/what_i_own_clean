@@ -290,10 +290,24 @@ Departures from the mockup:
   the shape of the input, is what rejected it.
 - **The guest link is dropped.** "先随便看看" implies browsing without an account, but every row is
   scoped to a user by RLS, so there is nothing for a guest to read.
-- **The terms line is plain text, not links.** There are no terms or privacy pages yet, and a link
-  to nowhere is worse than no link.
+- **The terms line links out**, via next-intl rich text rather than string concatenation: the two
+  links sit mid-sentence and fall in different places in each language.
 
-Neither form signs anybody in yet — submitting shows the `Alert` saying so. Auth is wired at M1.
+Four screens share the shell: login, signup, forgot-password, and update-password.
+
+**Forgot password** sits under the password field, right-aligned, in `text` rather than `accent-ink`.
+It is an escape hatch, not the action being offered, so it does not compete with the submit button.
+
+### Legal pages
+
+`/[locale]/privacy` and `/[locale]/terms`, prerendered per locale. A plainer layout than the auth
+screens — `bg` instead of the tinted backdrop, a 640px measure, no gradient. They are pages to read,
+so measure matters more than atmosphere.
+
+Copy lives in `content/legal/*.ts` as typed documents rather than in `messages/`, which is for
+interface strings: these are paragraphs, they change on their own schedule, and they carry an
+effective date. **They are a draft with placeholders in square brackets and need legal review** —
+see architecture.md.
 
 ### Favicon
 

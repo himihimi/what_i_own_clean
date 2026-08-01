@@ -121,7 +121,58 @@ what actually enforce anything.
 Sign-in deliberately has **no minimum-length rule**: an existing password predates whatever the
 current rule is, and "too short" would be a lie. Length is enforced on sign-up.
 
-Still to build: email verification, password reset, and rate limiting on both forms.
+#### Password reset
+
+`/forgot-password` → email → `/auth/callback` → `/update-password`.
+
+**`/auth/callback` has no locale segment**, because the redirect URL registered with Supabase cannot
+vary per language. The locale travels in a `next` parameter, and `proxy.ts` excludes `auth` from the
+i18n matcher — otherwise next-intl rewrites the callback to `/en/auth/callback`, which does not exist
+and silently breaks every emailed link.
+
+`next` is validated by `isSafeNext` in `lib/auth/redirect.ts` rather than trusted. It arrives from a
+URL anyone can craft, and an unchecked redirect target turns a reset link into a way to land someone
+on a convincing copy of this app. Only a same-site path starting with a configured locale is
+accepted; `//host` and `/\host` are rejected explicitly, since both leave the site despite starting
+with a slash. The function takes its locales as an argument so it has no module graph and can be
+tested on its own.
+
+**`/update-password` requires a session**, which is what the emailed link establishes. Without one
+there is nothing to update, so it redirects to `/forgot-password` — which is also what happens when
+the URL is opened directly or the link has already been spent.
+
+Two things learned the hard way while testing this against the local stack, both of which look like
+application bugs and are not:
+
+- **`redirect_to` is a query parameter on `/auth/v1/recover`, not a body field.** Put it in the body
+  and GoTrue ignores it and falls back to `site_url`, stripping the path and query.
+- **Without a PKCE challenge the tokens come back in the URL fragment**, which never reaches the
+  server. `supabase-js` sends the challenge automatically, so app-generated links arrive as
+  `?code=…` — which is what the callback reads. A link that somehow arrives without a code lands on
+  `/forgot-password?error=link` rather than failing blankly.
+
+Reset requests answer identically whether or not the address has an account, and the UI matches:
+saying "no such account" would turn the form into a way to discover who is registered.
+
+Still to build: email verification and rate limiting on the auth forms.
+
+### Legal pages
+
+`/[locale]/privacy` and `/[locale]/terms`, with copy in `content/legal/*.ts` — typed documents per
+locale, prerendered, linked from the terms line on every auth screen.
+
+**They are a draft.** Written to describe honestly what the app actually does — that inventory rows
+are scoped per user by the database, that photographs go to Gemini only when an AI feature is
+invoked, that the AI's output is a draft to confirm and not a record of value — and reviewed by
+nobody qualified.
+
+**Two things are deliberately unstated rather than invented:** a contact address, and the governing
+law and venue. Both documents say those will be published before the app opens beyond its first
+users, which is honest and leaves the gap visible instead of shipping a placeholder that reads as
+real.
+
+Before this is public: supply those two, have both languages read by a lawyer, and confirm the
+precedence clause — the terms currently state the English version governs where the two differ.
 
 #### Why no provider is required
 
