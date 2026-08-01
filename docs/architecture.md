@@ -48,14 +48,69 @@ the answer depends on the request.
 
 `welcome` is a placeholder. The real signed-in screen is the library grid at M2.
 
+### Connecting to Supabase
+
+**Local development runs the whole stack in Docker.** `pnpm db:start` brings up Postgres, Auth,
+Storage and Studio; `db:stop`, `db:status`, `db:reset` and `db:types` drive the rest. Migrations and
+the RLS test suite run against a database that can be thrown away, which is the only way the
+"user A cannot read user B's rows" suite is safe to write.
+
+| Env var | Value |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | project URL — `http://127.0.0.1:54321` locally |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | the `sb_publishable_…` key |
+
+**The publishable key, not the legacy `anon` JWT.** Supabase replaced the anon/service_role pair
+with publishable/secret keys; the old ones still work but are being retired, and the publishable key
+rotates without reissuing tokens.
+
+**The secret key is absent by design and must stay absent.** It is the service_role replacement and
+bypasses every policy. `lib/supabase/env.ts` reads exactly two values and there is no third.
+
+Three clients, all on the publishable key:
+
+| Where | File | Notes |
+|---|---|---|
+| Browser | `lib/supabase/client.ts` | `createBrowserClient` — session in cookies, not localStorage, so the server can read it |
+| Server | `lib/supabase/server.ts` | built per request from its cookies, so it acts as the caller and RLS applies |
+| Proxy | `proxy.ts` | refreshes expiring sessions |
+
+**The proxy is the subtle part.** next-intl runs first and may answer with a redirect (`/` → `/en`);
+Supabase's refreshed auth cookies are then written onto **that** response, not a fresh one. Write
+them to a new response and they are dropped on every locale redirect — which is every visit to the
+root. They are also written back onto the request, so server components rendering the same pass see
+the new tokens. The refresh call is `getUser`, not `getSession`: only `getUser` revalidates with the
+auth server, and revalidating is the whole reason to do it there.
+
+`minimum_password_length` in `supabase/config.toml` is set to 8 to match the zod schema. Client
+validation is a courtesy; the service is what enforces it. Verified: a 7-character password is
+rejected with `weak_password` even when the client is bypassed.
+
+Error codes are mapped in `lib/auth/types.ts` from `AuthApiError.code`, which auth-js populates from
+the response's `error_code`. Confirmed against the running stack: `invalid_credentials`,
+`user_already_exists`, `weak_password`. Unrecognised codes become `unknown` rather than surfacing
+provider text, which is unlocalised and occasionally discloses which accounts exist.
+
 ### Email and password, no third-party identity provider
 
 **Decided: email and password.** Google sign-in has been removed. Login takes email and password;
 signup takes name, email, password and confirm password. The name goes to user metadata on sign-up.
 
-Three stubs in `lib/auth.ts` are the whole surface — `isAuthenticated`, `signIn`, `signUp` — so
-wiring Supabase means replacing that file and nothing else. They currently return
-`{ ok: false, reason: "not-implemented" }`, which the forms render as a form-level alert.
+**Wired, not stubbed.** `lib/auth/` is the whole surface, split because the server half imports
+`next/headers` and a client component cannot:
+
+| File | Holds |
+|---|---|
+| `lib/auth/client.ts` | `signIn`, `signUp`, `signOut` — called from the browser |
+| `lib/auth/server.ts` | `currentUser`, `isAuthenticated` — reads the request's session |
+| `lib/auth/types.ts` | the failure union and the Supabase error-code mapping |
+
+The name given at sign-up goes to `user_metadata.name` on the identity, not to a table of ours — it
+belongs to the user, not the inventory.
+
+`/[locale]/welcome` checks the session itself rather than trusting the redirect at `/[locale]`: the
+URL can be typed directly, and a screen that greets someone by name should not render without
+knowing whose name it is.
 
 **Validation is zod**, in `lib/validation/auth.ts`. The schemas are built by factories taking already
 translated messages rather than reading them, so validation text is localised without handing the
