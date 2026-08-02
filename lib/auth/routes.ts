@@ -32,8 +32,14 @@ export const authPaths = {
 
 export type RouteGroup = "auth" | "challenge" | "protected" | "public";
 
-/** Readable without an account, and uninteresting to the guard. */
-const publicPaths = ["/privacy", "/terms"];
+/**
+ * Readable without an account, and uninteresting to the guard.
+ *
+ * `/demo` is the component gallery. Checking a component against light and dark,
+ * both languages and a narrow column should not require a session — asking for
+ * one is the friction that stops anybody looking.
+ */
+const publicPaths = ["/privacy", "/terms", "/demo"];
 
 /**
  * Classifies a full pathname, locale segment included.

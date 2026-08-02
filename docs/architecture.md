@@ -32,7 +32,7 @@ Three groups, defined once in `lib/auth/routes.ts` and enforced once in `proxy.t
 |---|---|---|
 | `auth` | `/{locale}/auth/*` — login, signup, forgot-password | for signed-out visitors; a signed-in one is sent to `/welcome` |
 | `challenge` | `/challenge/callback`, `/{locale}/challenge/*` | reached from an emailed link, so allowed in either state |
-| `public` | `/{locale}/privacy`, `/terms` | readable by anyone |
+| `public` | `/{locale}/privacy`, `/terms`, `/demo` | readable by anyone |
 | `protected` | everything else under `/{locale}` | needs a session, or it redirects to login |
 
 | | signed out | signed in |

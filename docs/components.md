@@ -6,6 +6,11 @@ grid, the item page, the item editor and the field console.
 See [design.md](./design.md) for the visual system these are built from, and
 [architecture.md](./architecture.md) for the technical decisions around them.
 
+**`/{locale}/demo` is all of it on one page**, in every state, with the theme and language switches on
+it. Public and unauthenticated on purpose: needing a session to look at a chip is the friction that
+stops anyone looking. It renders through the real catalogues, so switching language there switches
+the components'.
+
 ---
 
 ## 1. The item screens are field-driven
