@@ -22,6 +22,8 @@ export const authPaths = {
   signup: "/auth/signup",
   forgotPassword: "/auth/forgot-password",
   updatePassword: "/challenge/update-password",
+  /** Where a confirmed address lands. Reached from the emailed link, like its siblings. */
+  confirmed: "/challenge/confirmed",
   /** No locale: a redirect URL registered with Supabase is one fixed string. */
   callback: "/challenge/callback",
   /** Where a signed-in visitor belongs. */

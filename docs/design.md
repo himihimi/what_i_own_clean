@@ -289,7 +289,7 @@ Screens assemble top-down: 60ms between elements, which reads as intentional rat
 
 ## 11. Auth screens
 
-**Four screens** share one shell in `components/AuthScreen.tsx`: backdrop, logo plate, heading, the
+**Five screens** share one shell in `components/AuthScreen.tsx`: backdrop, logo plate, heading, the
 theme and locale controls, and the terms line. They differ only in heading, form, and the link at the
 bottom. Full-viewport, single column, centred, capped at 420 px on wider screens.
 
@@ -299,9 +299,17 @@ bottom. Full-viewport, single column, centred, capped at 420 px on wider screens
 | signup | name, email, password, confirm |
 | forgot-password | request a reset link |
 | update-password | choose a new one, reached from that link |
+| confirmed | say the address is confirmed, reached from that link |
 
-The first three are `/{locale}/auth/*`; the last is `/{locale}/challenge/*`, because an emailed link
-is what gets you there. See [architecture.md](./architecture.md) for why that distinction exists.
+The first three are `/{locale}/auth/*`; the last two are `/{locale}/challenge/*`, because an emailed
+link is what gets you there. See [architecture.md](./architecture.md) for why that distinction exists.
+
+**Confirmed is the one screen with no form.** An `<Alert>` with `CircleCheck`, a full-width accent
+button — *Continue* into the app, or *Log in* if the link did not also produce a session — and, in
+the footer line, a live countdown that moves on after 30 seconds. The countdown is visible rather
+than silent because a screen that navigates on its own with no warning is disorienting, and 30 real
+seconds beats "shortly". It is not a live region: announcing a number every second would bury the
+rest of the screen.
 
 | Element | Spec |
 |---|---|
@@ -355,6 +363,7 @@ its own small insult.
 |---|---|---|
 | Link sent | forgot-password | notice: *"If that address has an account, a reset link is on its way."* Deliberately conditional — see below |
 | Check your inbox | signup, when confirmation is required | notice naming the address, plus a spam-folder hint |
+| Address confirmed | confirmed | *"Your email address is confirmed."*, a button on, and a 30-second countdown |
 | Address unconfirmed | login | error, **plus a "Send a new confirmation link" button** |
 | New link sent | login, after that resend | notice naming the address |
 | Link expired | login or forgot-password | error: *"That link has expired. Request a new one."* |
