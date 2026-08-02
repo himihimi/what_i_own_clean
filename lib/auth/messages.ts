@@ -10,6 +10,7 @@ export const authErrorKeys = {
   "email-not-confirmed": "emailNotConfirmed",
   "weak-password": "weakPassword",
   "rate-limited": "rateLimited",
+  unreachable: "unreachable",
   unknown: "unknown",
 } as const satisfies Record<AuthFailure, string>;
 

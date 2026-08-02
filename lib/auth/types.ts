@@ -5,6 +5,7 @@ export type AuthFailure =
   | "email-not-confirmed"
   | "weak-password"
   | "rate-limited"
+  | "unreachable"
   | "unknown";
 
 export type AuthResult =
@@ -40,7 +41,25 @@ const codes: Record<string, AuthFailure> = {
   over_email_send_rate_limit: "rate-limited",
 };
 
-export function toFailure(error: { code?: string } | null): AuthFailure {
+export function toFailure(
+  error: { code?: string; name?: string; status?: number } | null,
+): AuthFailure {
+  /*
+   * The request never got an answer. auth-js reports that as
+   * `AuthRetryableFetchError` with status 0 — the same class it uses for a 5xx,
+   * which is why the status is checked and not just the name. There is no `code`
+   * on it, so without this the reader is told "Something went wrong" when the
+   * truth is that nothing was reached: a blocked mixed-content call from an
+   * https page to an http service, a device that is offline, a service that is
+   * down. Different problem, different thing to do about it.
+   *
+   * An aborted in-flight request looks identical, but that only happens when the
+   * page is already on its way somewhere else.
+   */
+  if (error?.name === "AuthRetryableFetchError" && !error.status) {
+    return "unreachable";
+  }
+
   return (error?.code && codes[error.code]) || "unknown";
 }
 

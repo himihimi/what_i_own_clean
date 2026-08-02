@@ -369,6 +369,7 @@ its own small insult.
 | Link expired | login or forgot-password | error: *"That link has expired. Request a new one."* |
 | Link invalid | same | error: *"That link is not valid."* — a different thing to the reader |
 | Rate limited | any | *"Try again in 44 seconds"* — the real number, per the copy rules below |
+| Server unreachable | any | *"Could not reach the server. Check your connection and try again."* — the request got no answer at all, which is not the same as it failing |
 
 Two of these are shaped by what the server is allowed to reveal:
 

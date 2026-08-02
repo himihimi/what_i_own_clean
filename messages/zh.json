@@ -92,6 +92,7 @@
     "weakPassword": "请设置更强的密码。",
     "rateLimited": "尝试次数过多，请稍后再试。",
     "rateLimitedSeconds": "尝试次数过多，请在 {seconds} 秒后重试。",
+    "unreachable": "无法连接服务器，请检查网络后重试。",
     "linkExpired": "链接已过期，请重新获取。",
     "linkInvalid": "链接无效，请重新获取。",
     "unknown": "出错了，请重试。"

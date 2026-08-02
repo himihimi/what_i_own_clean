@@ -92,6 +92,7 @@
     "weakPassword": "Choose a stronger password.",
     "rateLimited": "Too many attempts. Wait a moment and try again.",
     "rateLimitedSeconds": "Too many attempts. Try again in {seconds} seconds.",
+    "unreachable": "Could not reach the server. Check your connection and try again.",
     "linkExpired": "That link has expired. Request a new one.",
     "linkInvalid": "That link is not valid. Request a new one.",
     "unknown": "Something went wrong. Try again."
