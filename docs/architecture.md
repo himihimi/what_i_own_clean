@@ -75,7 +75,9 @@ locale prefix survives and someone on `/zh` is not bounced to an English screen.
 Reading the session makes these routes dynamic, which is correct — the answer depends on who is
 asking.
 
-`welcome` is a placeholder. The real signed-in screen is the library grid at M2.
+`welcome` is a placeholder. The real signed-in screen is `/library`, which now exists — the grid, the
+cards and the item page are built against `lib/items/fixtures.ts` until there are tables to read. See
+[components.md](./components.md).
 
 ### Connecting to Supabase
 

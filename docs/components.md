@@ -190,21 +190,35 @@ page whatever the hero does, so a field never moves depending on the data in it.
 
 ## 6. Build order
 
-1. **The field registry**, in TypeScript — the table in §1 as data.
-2. **ValueChip, StatusTag, Thumb, SectionHeading, CountLabel** — five atoms that the item page is
-   almost entirely made of.
-3. **The read renderer**: placement plus value state to an atom. The item page falls out of it.
-4. **ItemCard and the library grid**, which needs only `Thumb` and the tag atoms.
-5. **FieldRow, InlineField, Stepper, TagInput, ImageRow, DateRangeRow** and the edit renderer.
-6. **ScopePanel, PieceBox, PieceGroup** — everything about more than one piece, which is the part
-   worth getting wrong last.
+| | Step | State |
+|---|---|---|
+| 1 | **The field registry** — the table in §1 as data, in `lib/items/fields.ts` | built |
+| 2 | **The read atoms** — `ValueChip`, `StatusTag`, `Thumb`, `SectionHeading`, `CountLabel`, `ColorSwatch`, `HeartRating`, `VerdictQuote`, `Tag` | built |
+| 3 | **The read renderer** — `PieceSections`, walking the registry. The item page falls out of it | built |
+| 4 | **`ItemCard` and the library grid** | built |
+| 5 | **The edit atoms and the edit renderer** — `FieldRow`, `InlineField`, `Stepper`, `TagInput`, `ImageRow`, `DateRangeRow`, `PieceGroup` | not started |
+| 6 | **More than one piece** — the per-piece band and `PieceBoxes` | built |
+
+The screens read `lib/items/fixtures.ts`, which exists so the interface could be built and looked at
+before the data model. The grid, the cards, the chips and the summary rules are real; only where the
+items come from is not. Every fixture is deliberately awkward — pieces that disagree, an item with
+almost nothing filled in, two prices — because a tidy fixture set proves nothing.
 
 ---
 
-## 7. Still to decide
+## 7. Decided while building
 
-- **Which library card layout.** The drafts carry several and none is chosen. `ItemCard` should be
-  one layout, not a prop with five branches.
-- **Season colours.** Four hues that do not exist in the palette yet, and they need dark-mode
-  counterparts and a contrast check at 4.5:1 like everything in design.md §3. The drafts also set
-  tags at 10px, below the 11px floor in §5.
+**The library card is the vertical one**: plate, name, price and brand, then tags. The status tag
+overlays the plate's top corner and the count its bottom corner. It follows the drafts' own note —
+small thumbnail, status in the corner, name, total — and it is one layout rather than a prop with
+five branches.
+
+**`held` is the only status tone with an outline.** Its fill is `surface-2`, and it labels a
+thumbnail that is also `surface-2`, so on a card it vanished where every tinted tone read fine. The
+hairline is what makes an untinted tag legible on any surface.
+
+## 8. Still to decide
+
+**Season colours.** Four hues that do not exist in the palette, needing dark-mode counterparts and a
+contrast check at 4.5:1 like everything in design.md §3. Nothing renders them yet. The drafts also
+set tags at 10px, below the 11px floor in §5.

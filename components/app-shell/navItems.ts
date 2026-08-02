@@ -21,10 +21,10 @@ export type NavItem = {
 };
 
 export const navItems: readonly NavItem[] = [
-  // Points at /welcome for now. The real home is the library grid at M2, at
-  // which point this splits into a feed and a library properly.
+  // Points at /welcome for now. Home becomes the recommendation feed once there
+  // is data to recommend from; the library is its own tab already.
   { key: "home", href: "/welcome", icon: House, ready: true },
-  { key: "library", href: "/library", icon: Boxes, ready: false },
+  { key: "library", href: "/library", icon: Boxes, ready: true },
   { key: "add", href: "/add", icon: Plus, ready: false, fab: true },
   { key: "assistant", href: "/assistant", icon: Sparkles, ready: false },
 ];
