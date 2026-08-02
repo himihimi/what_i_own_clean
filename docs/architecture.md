@@ -69,7 +69,7 @@ has already turned a signed-out visitor away.
 
 Redirects inside the app come from next-intl's navigation rather than `next/navigation`, so the
 locale prefix survives and someone on `/zh` is not bounced to an English screen. The exception is
-`/challenge/callback`, which has no locale by design.
+`/challenge/callback`, the locale-less forwarder, which has none to preserve.
 
 Reading the session makes these routes dynamic, which is correct — the answer depends on who is
 asking.
@@ -136,7 +136,7 @@ signup takes name, email, password and confirm password. The name goes to user m
 | `lib/auth/messages.ts` | failure reason to message key, shared by all four forms |
 | `lib/auth/routes.ts` | every auth path, and which group each route belongs to |
 | `lib/auth/redirect.ts` | resolving and validating an emailed link's destination |
-| `lib/auth/recoveryLanding.ts` | reading an emailed link's token, stray `code`, or error out of a query string |
+| `lib/auth/recoveryLanding.ts` | reading a session, a stray `code`, or an error out of a query string or a URL fragment |
 
 The name given at sign-up goes to `user_metadata.name` on the identity, not to a table of ours — it
 belongs to the user, not the inventory.
@@ -155,42 +155,68 @@ current rule is, and "too short" would be a lie. Length is enforced on sign-up.
 
 #### How an emailed link is redeemed
 
-**The link carries a one-time `token_hash` that `/challenge/callback` verifies itself.** It does not
-go through Supabase's `/auth/v1/verify` first, and it does not carry a PKCE `code`.
+**The session arrives in the URL fragment, and the callback is a client page that reads it.** No
+`token_hash` to verify, no PKCE `code` to exchange — the tokens are handed over whole.
 
-That is a correction, not a preference. The default `{{ .ConfirmationURL }}` produces a link to the
-auth service, which verifies the token and redirects back with a `code` — and **that code can only be
-redeemed by the browser that requested the email**, because exchanging it needs a verifier stored in
-that browser's cookies. Sign up on a laptop, open the mail on a phone, and the exchange fails with a
-missing verifier. Both emailed flows were broken in production this way, and both reported it as
-*"That link has expired"* — the callback mapped every exchange failure to "expired" on the assumption
-that expiry was the only realistic cause.
+That shape is forced by two constraints meeting, and it is worth writing down which:
 
-| | `{{ .ConfirmationURL }}` | `{{ .TokenHash }}` |
+- **A PKCE `code` can only be redeemed in the browser that requested the email.** Exchanging it needs
+  a verifier held in that browser's cookies. Sign up on a laptop, open the mail on a phone, and the
+  exchange fails — reported to the reader as *"That link has expired"*, because the callback mapped
+  every exchange failure to expiry. For an app designed at phone width that is the ordinary case.
+- **The email templates cannot be changed.** Customising them is a paid feature of the hosted
+  project, so `{{ .ConfirmationURL }}` is what goes out and every link runs through
+  `/auth/v1/verify` first. `emailRedirectTo` sets only the `redirect_to` parameter on that URL; it
+  does not change the link's shape. A one-time `token_hash` the server could verify was the other way
+  out of the PKCE problem, and it needs a template.
+
+What is left is the flow type. Ask for the email **without** a PKCE challenge and `/auth/v1/verify`
+answers with the session in the fragment instead of a code in the query:
+
+```
+/challenge/callback?next=%2Fen%2Fchallenge%2Fupdate-password
+  #access_token=…&refresh_token=…&type=recovery&expires_in=3600
+```
+
+| | with a PKCE challenge | without one |
 |---|---|---|
-| Link goes to | `/auth/v1/verify`, then back to us | straight to `/challenge/callback` |
-| Redeemed with | `exchangeCodeForSession` | `verifyOtp({ type, token_hash })` |
+| Comes back as | `?code=…` in the query | `#access_token=…` in the fragment |
+| Redeemed with | `exchangeCodeForSession` | `setSession` |
 | Needs the requesting browser | **yes** — its stored verifier | no |
-| Redirects | two | one |
+| Readable by the server | yes | **no** — a fragment is never sent |
 
 Three things follow, and all three are load-bearing:
 
-- **The templates are ours.** `supabase/templates/confirmation.html` and `recovery.html`, wired up in
-  `supabase/config.toml` for the local stack. Each link is `{{ .RedirectTo }}` — the callback URL the
-  app passed, `next` and all — with `&token_hash={{ .TokenHash }}&type=…` appended. The hosted project
-  needs the same two set in **Authentication → Email Templates**; nothing in this repo reaches them.
 - **The client that requests the email is not `createBrowserClient`.** `@supabase/ssr` hard-codes
-  `flowType: "pkce"` *after* spreading the caller's options, so it cannot be turned off there. With a
-  PKCE challenge stored, `{{ .TokenHash }}` renders a `pkce_…` token instead of a plain one.
+  `flowType: "pkce"` *after* spreading the caller's options, so it cannot be turned off there.
   `lib/supabase/emailLinks.ts` is a plain `supabase-js` client on `flowType: "implicit"`, used by
   `signUp`, `resendConfirmation` and `requestPasswordReset` and nothing else. It persists nothing, so
-  when sign-up does come back with a session — confirmations off — that session is handed to the app's
-  own client with `setSession`, or the browser would hold one no server component could see.
-- **`exchangeCodeForSession` is still there**, for links sent before this change and still sitting in
-  an inbox. It can go once they have all expired.
+  when sign-up does come back with a session — confirmations off — that session is handed to the
+  app's own client with `setSession`, or the browser would hold one no server component could see.
+- **The callback is a page, not a route handler**, because only the browser can see a fragment. It
+  writes the session with the app's own client, whose storage is cookies, so the page it forwards to
+  is already signed in when the server renders it. It navigates with `location.replace`, which both
+  guarantees the server sees the new cookies and keeps a URL carrying tokens out of the back button.
+- **The callback carries a locale**, `/{locale}/challenge/callback`, because `emailRedirectTo` is
+  built in the browser where the language is known. That is what lets it be an ordinary page with the
+  app's layout and translations. The locale-less `/challenge/callback` survives as a forwarder for a
+  link that could not carry one — a redirect URL typed into the dashboard, or a link sent before the
+  move. A redirect preserves the fragment, so forwarding does not lose the session.
 
-Both failure branches now log the provider's error code. The reader still gets one localised sentence,
-but an expired token and a rejected one are no longer indistinguishable from outside.
+**The trade this makes is tokens in the URL.** A fragment is never transmitted to a server, is not
+sent in a `Referer`, and this one is replaced in history the moment it is read — but it is briefly in
+the address bar, which a `token_hash` verified server-side would have avoided. That is the cost of
+the template constraint, and it is the same flow Supabase itself shipped for years.
+
+**The hosted project needs the callback allow-listed**, `https://<site>/**` under **Authentication →
+URL Configuration → Redirect URLs**. Without it the auth service substitutes the Site URL and the
+session lands on the site root, where nothing reads it.
+
+`exchangeCodeForSession` is still handled, for a link sent while the app was on PKCE and still
+sitting in an inbox. It can go once those have expired.
+
+The failure branch logs the provider's error code. The reader still gets one localised sentence, but
+an expired token and a rejected one are no longer indistinguishable from outside.
 
 #### Sign-up confirmation
 
@@ -222,9 +248,9 @@ acts on what it returns:
 
 | Callback receives | Lands on |
 |---|---|
-| `token_hash` + `type=signup` that verifies | `/challenge/confirmed`, signed in |
-| `token_hash` + `type=recovery` that verifies | `/challenge/update-password`, signed in |
-| `token_hash` with an unrecognised `type` | `…?error=link` — not passed on to the auth service |
+| `#access_token` + `#type=signup` | `/challenge/confirmed`, signed in |
+| `#access_token` + `#type=recovery` | `/challenge/update-password`, signed in |
+| a session that `setSession` rejects | `…?error=expired`, and the provider's code is logged |
 | `code` that exchanges | the destination, signed in |
 | `error_code=otp_expired` | `…?error=expired` — "That link has expired" |
 | any other error, or nothing | `…?error=link` — "That link is not valid" |
@@ -262,10 +288,9 @@ that is not a same-site path — `//host`, `/\host`, an absolute URL — is disc
 
 `/auth/forgot-password` → email → `/challenge/callback` → `/challenge/update-password`.
 
-**`/challenge/callback` has no locale segment**, because the redirect URL registered with Supabase cannot
-vary per language. The locale travels in a `next` parameter, and `proxy.ts` excludes `auth` from the
-matcher — otherwise next-intl rewrites the callback to `/en/challenge/callback`, which does not exist
-and silently breaks every emailed link.
+**The callback carries the locale**, because `emailRedirectTo` is built in the browser, where the
+language is known. The locale-less `/challenge/callback` remains as a forwarder for links that could
+not carry one, and `proxy.ts` excludes it from the matcher so next-intl does not rewrite it.
 
 `next` is validated by `isSafeNext` in `lib/auth/redirect.ts` rather than trusted. It arrives from a
 URL anyone can craft, and an unchecked redirect target turns a reset link into a way to land someone
@@ -295,15 +320,13 @@ application bugs and are not:
 
 - **`redirect_to` is a query parameter on `/auth/v1/recover`, not a body field.** Put it in the body
   and GoTrue ignores it and falls back to `site_url`, stripping the path and query.
-- **`{{ .RedirectTo }}` renders the *validated* redirect**, so the callback URL has to be on the
-  project's allow-list. If it is not, GoTrue substitutes the Site URL — which carries no `?next=`, so
-  the `&token_hash=…` the template appends produces a malformed link rather than a link to the wrong
-  place. `https://<site>/**` under **Authentication → URL Configuration → Redirect URLs** is what
-  keeps that from happening.
-- **Dropping the PKCE challenge does not put tokens in the URL fragment here.** It would with
-  `{{ .ConfirmationURL }}`, where the auth service redirects and has nowhere else to put them — and a
-  fragment never reaches the server. Our templates never involve that redirect: the link goes straight
-  to the callback carrying a `token_hash` in the query, which is a one-time value and not a session.
+- **`redirect_to` is validated against the allow-list at click time**, not when the email is sent.
+  If the callback URL is not on it, GoTrue substitutes the Site URL and the session lands on the site
+  root, where nothing reads it. `https://<site>/**` under **Authentication → URL Configuration →
+  Redirect URLs** is what keeps that from happening.
+- **Dropping the PKCE challenge is what puts the session in the fragment**, and that is deliberate
+  here rather than a side effect. The auth service redirects and has nowhere else to put the tokens;
+  a fragment never reaches a server, which is why the callback has to be a client page.
 
 Reset requests answer identically whether or not the address has an account, and the UI matches:
 saying "no such account" would turn the form into a way to discover who is registered.

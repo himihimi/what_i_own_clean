@@ -1,17 +1,18 @@
 import { authPaths } from "./routes";
 
 /**
- * Reads what an emailed link left in the query string.
+ * Reads what an emailed link left behind — in the query string, or in the URL
+ * fragment, which only the browser can see.
  *
  * Three shapes, in the order they are looked for:
  *
- * - `token_hash` and `type` — every link this app sends. The email templates
- *   append them to the callback URL, so the link comes straight here with no
- *   detour through the auth service, and the token is verified server-side.
- * - `code` — a PKCE code from a link sent before that change. Kept so links
- *   already in someone's inbox still work.
- * - `error` / `error_code` — how a dead link is reported when the auth service
- *   handled it, which is the case for anything built from `{{ .ConfirmationURL }}`.
+ * - `access_token` and `refresh_token` — a session, handed over whole. This is
+ *   what the auth service returns for a link that was requested without a PKCE
+ *   challenge, and it arrives in the fragment.
+ * - `code` — a PKCE code, from a link requested with one. Only redeemable in the
+ *   browser that asked for the email, which is why the app no longer sends them.
+ * - `error` / `error_code` — how a dead link is reported. Also in the fragment
+ *   for these links, and in the query for anything the auth service redirected.
  *
  * Links do not always arrive at `/challenge/callback`. If `redirect_to` is not on the
  * project's allow-list, Supabase falls back to the Site URL and the one-time
@@ -34,9 +35,15 @@ const linkTypes = ["signup", "recovery"] as const;
 export type LinkType = (typeof linkTypes)[number];
 
 export type RecoveryLanding =
-  /** A one-time token to verify. What every link this app sends now carries. */
-  | { kind: "verify"; tokenHash: string; type: LinkType }
-  /** A PKCE code to exchange. Only links sent before the switch to `token_hash`. */
+  /** A whole session, from the fragment. What every link this app sends carries. */
+  | {
+      kind: "session";
+      accessToken: string;
+      refreshToken: string;
+      /** Which link it was, so the destination can differ. Absent on old links. */
+      type?: LinkType;
+    }
+  /** A PKCE code to exchange, redeemable only in the browser that asked. */
   | { kind: "exchange"; code: string }
   | { kind: "failed"; reason: "expired" | "link" }
   | null;
@@ -52,13 +59,15 @@ function asLinkType(value: string | undefined): LinkType | undefined {
 }
 
 export function readRecoveryLanding(params: Params): RecoveryLanding {
-  const tokenHash = first(params.token_hash);
-  if (tokenHash) {
-    const type = asLinkType(first(params.type));
-
-    return type
-      ? { kind: "verify", tokenHash, type }
-      : { kind: "failed", reason: "link" };
+  const accessToken = first(params.access_token);
+  const refreshToken = first(params.refresh_token);
+  if (accessToken && refreshToken) {
+    return {
+      kind: "session",
+      accessToken,
+      refreshToken,
+      type: asLinkType(first(params.type)),
+    };
   }
 
   const code = first(params.code);
@@ -81,8 +90,8 @@ export function readRecoveryLanding(params: Params): RecoveryLanding {
   return null;
 }
 
-/** The callback owns the exchange, so a stray code is forwarded there. */
+/** The callback owns redemption, so a stray code is forwarded there. */
 export function callbackUrl(code: string, locale: string): string {
   const next = encodeURIComponent(`/${locale}${authPaths.updatePassword}`);
-  return `${authPaths.callback}?code=${encodeURIComponent(code)}&next=${next}`;
+  return `/${locale}${authPaths.callback}?code=${encodeURIComponent(code)}&next=${next}`;
 }

@@ -18,13 +18,14 @@ import { retryAfterSeconds, toFailure, type AuthResult } from "./types";
 /**
  * Where an emailed link comes back to.
  *
- * The email templates append `&token_hash=…&type=…` to this, so it must stay a
- * URL that already has a query string. `next` carries the language, because the
- * browser knows it at the moment the email is requested and a template cannot.
+ * Locale-prefixed, because this is built in the browser and the language is
+ * known here — which is what lets the callback be an ordinary page with the
+ * app's translations rather than a locale-less route. `next` carries the
+ * destination beyond it.
  */
-function callbackFor(destination: string): string {
+function callbackFor(locale: string, destination: string): string {
   const next = encodeURIComponent(destination);
-  return `${window.location.origin}${authPaths.callback}?next=${next}`;
+  return `${window.location.origin}/${locale}${authPaths.callback}?next=${next}`;
 }
 
 /**
@@ -32,7 +33,7 @@ function callbackFor(destination: string): string {
  * somewhere different from the original would be its own bug.
  */
 function confirmationRedirect(locale: string): string {
-  return callbackFor(`/${locale}${authPaths.home}`);
+  return callbackFor(locale, `/${locale}${authPaths.home}`);
 }
 
 /** Every failure path goes through here, so none of them can forget the wait. */
@@ -163,7 +164,10 @@ export async function requestPasswordReset(values: {
   const { error } = await createEmailLinkClient().auth.resetPasswordForEmail(
     values.email,
     {
-      redirectTo: callbackFor(`/${values.locale}${authPaths.updatePassword}`),
+      redirectTo: callbackFor(
+        values.locale,
+        `/${values.locale}${authPaths.updatePassword}`,
+      ),
     },
   );
 

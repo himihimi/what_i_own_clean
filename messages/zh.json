@@ -56,6 +56,9 @@
     "checkInbox": "请查看 {email}，我们已发送确认链接。打开它即可完成登录。",
     "inboxHint": "一分钟后仍未收到？请检查垃圾邮件，或重新尝试。"
   },
+  "callback": {
+    "signingIn": "正在登录…"
+  },
   "confirmed": {
     "title": "邮箱已确认",
     "body": "你的邮箱地址已确认。",

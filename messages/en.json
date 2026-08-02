@@ -56,6 +56,9 @@
     "checkInbox": "Check {email} for a link to confirm your address. Open it to finish signing in.",
     "inboxHint": "No email after a minute? Check the spam folder, or try again."
   },
+  "callback": {
+    "signingIn": "Signing you in…"
+  },
   "confirmed": {
     "title": "Email confirmed",
     "body": "Your email address is confirmed.",

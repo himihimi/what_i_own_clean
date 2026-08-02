@@ -304,6 +304,12 @@ bottom. Full-viewport, single column, centred, capped at 420 px on wider screens
 The first three are `/{locale}/auth/*`; the last two are `/{locale}/challenge/*`, because an emailed
 link is what gets you there. See [architecture.md](./architecture.md) for why that distinction exists.
 
+**A sixth exists and is not a screen.** `/{locale}/challenge/callback` is what an emailed link opens:
+the backdrop and the logo plate, no copy, gone in the time it takes to read a token out of the URL
+and move on. Its only text is an `sr-only` status line, because there is nothing here to read and a
+heading would flash. It does not use `AuthScreen` — no terms line, no controls; offering settings on
+a screen nobody stays on is noise.
+
 **Confirmed is the one screen with no form.** An `<Alert>` with `CircleCheck`, a full-width accent
 button — *Continue* into the app, or *Log in* if the link did not also produce a session — and, in
 the footer line, a live countdown that moves on after 30 seconds. The countdown is visible rather
