@@ -1,0 +1,27 @@
+<!--
+  Confirm signup.
+
+  Deliberately NOT {{ .ConfirmationURL }}. That points at /auth/v1/verify, which
+  redirects back with a PKCE code redeemable only in the browser that asked for
+  the email — so confirming from a phone after signing up on a laptop fails, and
+  reads as an expired link. {{ .TokenHash }} is verified by /challenge/callback
+  itself and needs nothing but the token.
+
+  {{ .RedirectTo }} is the callback URL the app passed, and it always carries a
+  `next` parameter, so the query string is already open and these two are joined
+  with `&`. See lib/auth/client.ts.
+
+  The hosted project needs this same template — it is configured in the
+  dashboard, not from this file. See docs/architecture.md.
+-->
+<h2>Confirm your email address</h2>
+
+<p>Open this link to confirm the address you signed up with:</p>
+
+<p>
+  <a href="{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=signup"
+    >Confirm your email</a
+  >
+</p>
+
+<p>The link is good for one hour. If you did not create an account, ignore this message.</p>

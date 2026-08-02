@@ -1,0 +1,15 @@
+<!--
+  Reset password. See confirmation.html for why this is {{ .TokenHash }} and not
+  {{ .ConfirmationURL }}, and for how {{ .RedirectTo }} is joined.
+-->
+<h2>Reset your password</h2>
+
+<p>Open this link to choose a new password:</p>
+
+<p>
+  <a href="{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=recovery"
+    >Choose a new password</a
+  >
+</p>
+
+<p>The link is good for one hour. If you did not ask for it, ignore this message — your password stays as it is.</p>

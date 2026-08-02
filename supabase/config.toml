@@ -243,6 +243,18 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
+# Both templates build their link from {{ .TokenHash }} rather than the default
+# {{ .ConfirmationURL }}, so an emailed link can be opened in any browser and not
+# only the one that requested it. The files say why. The hosted project needs the
+# same two, set in the dashboard — see docs/architecture.md.
+[auth.email.template.confirmation]
+subject = "Confirm your email address"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Reset your password"
+content_path = "./supabase/templates/recovery.html"
+
 # Uncomment to customize email template
 # [auth.email.template.invite]
 # subject = "You have been invited"

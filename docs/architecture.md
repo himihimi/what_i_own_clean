@@ -102,6 +102,7 @@ Three clients, all on the publishable key:
 | Browser | `lib/supabase/client.ts` | `createBrowserClient` — session in cookies, not localStorage, so the server can read it |
 | Server | `lib/supabase/server.ts` | built per request from its cookies, so it acts as the caller and RLS applies |
 | Proxy | `proxy.ts` | refreshes expiring sessions |
+| Email links | `lib/supabase/emailLinks.ts` | the one exception: not `createBrowserClient`, persists nothing, and used only to ask Supabase to send an email — see [How an emailed link is redeemed](#how-an-emailed-link-is-redeemed) |
 
 **The proxy is the subtle part.** next-intl runs first and may answer with a redirect (`/` → `/en`);
 Supabase's refreshed auth cookies are then written onto **that** response, not a fresh one. Write
@@ -135,7 +136,7 @@ signup takes name, email, password and confirm password. The name goes to user m
 | `lib/auth/messages.ts` | failure reason to message key, shared by all four forms |
 | `lib/auth/routes.ts` | every auth path, and which group each route belongs to |
 | `lib/auth/redirect.ts` | resolving and validating an emailed link's destination |
-| `lib/auth/recoveryLanding.ts` | reading a stray `code` or error out of a query string |
+| `lib/auth/recoveryLanding.ts` | reading an emailed link's token, stray `code`, or error out of a query string |
 
 The name given at sign-up goes to `user_metadata.name` on the identity, not to a table of ours — it
 belongs to the user, not the inventory.
@@ -152,13 +153,59 @@ what actually enforce anything.
 Sign-in deliberately has **no minimum-length rule**: an existing password predates whatever the
 current rule is, and "too short" would be a lie. Length is enforced on sign-up.
 
+#### How an emailed link is redeemed
+
+**The link carries a one-time `token_hash` that `/challenge/callback` verifies itself.** It does not
+go through Supabase's `/auth/v1/verify` first, and it does not carry a PKCE `code`.
+
+That is a correction, not a preference. The default `{{ .ConfirmationURL }}` produces a link to the
+auth service, which verifies the token and redirects back with a `code` — and **that code can only be
+redeemed by the browser that requested the email**, because exchanging it needs a verifier stored in
+that browser's cookies. Sign up on a laptop, open the mail on a phone, and the exchange fails with a
+missing verifier. Both emailed flows were broken in production this way, and both reported it as
+*"That link has expired"* — the callback mapped every exchange failure to "expired" on the assumption
+that expiry was the only realistic cause.
+
+| | `{{ .ConfirmationURL }}` | `{{ .TokenHash }}` |
+|---|---|---|
+| Link goes to | `/auth/v1/verify`, then back to us | straight to `/challenge/callback` |
+| Redeemed with | `exchangeCodeForSession` | `verifyOtp({ type, token_hash })` |
+| Needs the requesting browser | **yes** — its stored verifier | no |
+| Redirects | two | one |
+
+Three things follow, and all three are load-bearing:
+
+- **The templates are ours.** `supabase/templates/confirmation.html` and `recovery.html`, wired up in
+  `supabase/config.toml` for the local stack. Each link is `{{ .RedirectTo }}` — the callback URL the
+  app passed, `next` and all — with `&token_hash={{ .TokenHash }}&type=…` appended. The hosted project
+  needs the same two set in **Authentication → Email Templates**; nothing in this repo reaches them.
+- **The client that requests the email is not `createBrowserClient`.** `@supabase/ssr` hard-codes
+  `flowType: "pkce"` *after* spreading the caller's options, so it cannot be turned off there. With a
+  PKCE challenge stored, `{{ .TokenHash }}` renders a `pkce_…` token instead of a plain one.
+  `lib/supabase/emailLinks.ts` is a plain `supabase-js` client on `flowType: "implicit"`, used by
+  `signUp`, `resendConfirmation` and `requestPasswordReset` and nothing else. It persists nothing, so
+  when sign-up does come back with a session — confirmations off — that session is handed to the app's
+  own client with `setSession`, or the browser would hold one no server component could see.
+- **`exchangeCodeForSession` is still there**, for links sent before this change and still sitting in
+  an inbox. It can go once they have all expired.
+
+Both failure branches now log the provider's error code. The reader still gets one localised sentence,
+but an expired token and a rejected one are no longer indistinguishable from outside.
+
 #### Sign-up confirmation
 
-`/challenge/callback` serves both emailed links. Confirming an address exchanges the code for a session
-and lands on `/welcome` already signed in, which closes the cycle. A dead confirmation link goes to
-**login** with "That link has expired", not to the reset screen — signing in is where that person
-needs to end up. A dead reset link still goes to `/forgot-password`, which is the screen that sends a
-new one; the callback picks the destination from what `next` was aiming at.
+`/challenge/callback` serves both emailed links. A dead confirmation link goes to **login** with
+"That link has expired", not to the reset screen — signing in is where that person needs to end up,
+and it is where a still-unconfirmed address is offered a fresh link. A dead reset link goes to
+`/forgot-password`, which is the screen that sends a new one; the callback picks the destination from
+the link's `type`, falling back to what `next` was aiming at.
+
+**A confirmed address lands on `/challenge/confirmed`, not in the app.** Verifying the token both
+confirms the address and signs the reader in, so continuing straight to `/welcome` would work — but it
+would also be the only step in the flow that never says it succeeded. The screen says the address is
+confirmed, offers *Continue*, and moves on by itself after 30 seconds. If no session came back the
+same screen offers *Log in* instead: the address is confirmed either way, which is the thing worth
+saying.
 
 **An unconfirmed address cannot sign in.** Supabase enforces it — `signInWithPassword` returns
 `email_not_confirmed` — so all that was needed was to say so instead of showing "Something went
@@ -170,15 +217,24 @@ address reveals a **resend** on the sign-in screen, at the moment it happens, an
 redirect is built by one shared helper so a resent link cannot land somewhere different from the
 original. Verified: resend returns a fresh `type=signup` link whose `redirect_to` is the callback.
 
-**A dead link is reported by Supabase in the query, not as a failing code.** It arrives as
-`error=access_denied` with an `error_code`, so a callback that only looked for `code` called every
-expired link "invalid" — a different thing to the person holding it. The callback now reads both:
+`lib/auth/recoveryLanding.ts` is the one reader of what a link left in the query, and the callback
+acts on what it returns:
 
 | Callback receives | Lands on |
 |---|---|
+| `token_hash` + `type=signup` that verifies | `/challenge/confirmed`, signed in |
+| `token_hash` + `type=recovery` that verifies | `/challenge/update-password`, signed in |
+| `token_hash` with an unrecognised `type` | `…?error=link` — not passed on to the auth service |
 | `code` that exchanges | the destination, signed in |
 | `error_code=otp_expired` | `…?error=expired` — "That link has expired" |
 | any other error, or nothing | `…?error=link` — "That link is not valid" |
+
+**A dead link is reported by Supabase in the query, not as a failing code.** It arrives as
+`error=access_denied` with an `error_code`, so a callback that only looked for `code` called every
+expired link "invalid" — a different thing to the person holding it. That shape only reaches us from
+a link the auth service redirected, which since the template change means one built elsewhere: an
+older link, or one sent from the dashboard. Our own links fail at `verifyOtp` instead, and the row
+above is chosen from its error code.
 
 One detail worth keeping: Supabase's rate-limit message can say **"after 0 seconds"** when the window
 has just closed. `retryAfterSeconds` discards a zero, so the UI falls back to the generic wait rather
@@ -239,15 +295,20 @@ application bugs and are not:
 
 - **`redirect_to` is a query parameter on `/auth/v1/recover`, not a body field.** Put it in the body
   and GoTrue ignores it and falls back to `site_url`, stripping the path and query.
-- **Without a PKCE challenge the tokens come back in the URL fragment**, which never reaches the
-  server. `supabase-js` sends the challenge automatically, so app-generated links arrive as
-  `?code=…` — which is what the callback reads. A link that somehow arrives without a code lands on
-  `/forgot-password?error=link` rather than failing blankly.
+- **`{{ .RedirectTo }}` renders the *validated* redirect**, so the callback URL has to be on the
+  project's allow-list. If it is not, GoTrue substitutes the Site URL — which carries no `?next=`, so
+  the `&token_hash=…` the template appends produces a malformed link rather than a link to the wrong
+  place. `https://<site>/**` under **Authentication → URL Configuration → Redirect URLs** is what
+  keeps that from happening.
+- **Dropping the PKCE challenge does not put tokens in the URL fragment here.** It would with
+  `{{ .ConfirmationURL }}`, where the auth service redirects and has nowhere else to put them — and a
+  fragment never reaches the server. Our templates never involve that redirect: the link goes straight
+  to the callback carrying a `token_hash` in the query, which is a one-time value and not a session.
 
 Reset requests answer identically whether or not the address has an account, and the UI matches:
 saying "no such account" would turn the form into a way to discover who is registered.
 
-Still to build: email verification and rate limiting on the auth forms.
+Still to build: rate limiting on the auth forms.
 
 ### Legal pages
 

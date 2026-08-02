@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { createEmailLinkClient } from "@/lib/supabase/emailLinks";
 
 import { authPaths } from "./routes";
 import { retryAfterSeconds, toFailure, type AuthResult } from "./types";
@@ -9,15 +10,29 @@ import { retryAfterSeconds, toFailure, type AuthResult } from "./types";
  * The session lands in cookies rather than localStorage — see
  * lib/supabase/client.ts — so a server component can read it on the next
  * request without the client handing anything over.
+ *
+ * The three calls that make Supabase send an email go through a different
+ * client — see lib/supabase/emailLinks.ts. Everything else uses the app's own.
  */
 
 /**
- * Where a confirmation link comes back to. Shared so sign-up and a resend cannot
- * drift apart — a resent link landing somewhere else would be its own bug.
+ * Where an emailed link comes back to.
+ *
+ * The email templates append `&token_hash=…&type=…` to this, so it must stay a
+ * URL that already has a query string. `next` carries the language, because the
+ * browser knows it at the moment the email is requested and a template cannot.
+ */
+function callbackFor(destination: string): string {
+  const next = encodeURIComponent(destination);
+  return `${window.location.origin}${authPaths.callback}?next=${next}`;
+}
+
+/**
+ * Shared so sign-up and a resend cannot drift apart — a resent link landing
+ * somewhere different from the original would be its own bug.
  */
 function confirmationRedirect(locale: string): string {
-  const next = encodeURIComponent(`/${locale}${authPaths.home}`);
-  return `${window.location.origin}${authPaths.callback}?next=${next}`;
+  return callbackFor(`/${locale}${authPaths.home}`);
 }
 
 /** Every failure path goes through here, so none of them can forget the wait. */
@@ -45,8 +60,7 @@ export async function signUp(values: {
   password: string;
   locale: string;
 }): Promise<AuthResult> {
-  const supabase = createClient();
-  const { data, error } = await supabase.auth.signUp({
+  const { data, error } = await createEmailLinkClient().auth.signUp({
     email: values.email,
     password: values.password,
     options: {
@@ -56,8 +70,8 @@ export async function signUp(values: {
       data: { name: values.name },
       /*
        * Where the confirmation link comes back to. Set here rather than left to
-       * the project's Site URL, so confirming an address lands on the welcome
-       * screen — already signed in, cycle complete — instead of the site root.
+       * the project's Site URL, so confirming an address lands on a screen of
+       * ours instead of the site root.
        *
        * The locale is included because the browser knows it at this moment. The
        * callback can still resolve one from the reader's stored preference, which
@@ -87,7 +101,18 @@ export async function signUp(values: {
    * created, only that a link was sent if one was needed.
    */
   if (data.session) {
-    return { ok: true };
+    /*
+     * The client that made this call deliberately persists nothing, so the
+     * session it just received has to be handed to the app's own client — the
+     * one whose storage is cookies the server can read. Without this the browser
+     * would hold a session no server component could see.
+     */
+    const { error: adoptError } = await createClient().auth.setSession({
+      access_token: data.session.access_token,
+      refresh_token: data.session.refresh_token,
+    });
+
+    return adoptError ? failed(adoptError) : { ok: true };
   }
 
   return { ok: true, confirmationRequired: true };
@@ -105,9 +130,7 @@ export async function resendConfirmation(values: {
   email: string;
   locale: string;
 }): Promise<AuthResult> {
-  const supabase = createClient();
-
-  const { error } = await supabase.auth.resend({
+  const { error } = await createEmailLinkClient().auth.resend({
     type: "signup",
     email: values.email,
     options: { emailRedirectTo: confirmationRedirect(values.locale) },
@@ -126,7 +149,7 @@ export async function signOut(): Promise<void> {
  *
  * `redirectTo` points at /challenge/callback — a fixed, allow-listed URL that cannot
  * vary per locale, so the language rides along in `next` and the callback
- * forwards there once the link has been exchanged for a session.
+ * forwards there once the link has been verified.
  *
  * Supabase answers the same way whether or not the address has an account, and
  * so must the UI: reporting "no such account" here would turn this form into a
@@ -137,12 +160,12 @@ export async function requestPasswordReset(values: {
   email: string;
   locale: string;
 }): Promise<AuthResult> {
-  const supabase = createClient();
-  const next = `/${values.locale}${authPaths.updatePassword}`;
-
-  const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
-    redirectTo: `${window.location.origin}${authPaths.callback}?next=${encodeURIComponent(next)}`,
-  });
+  const { error } = await createEmailLinkClient().auth.resetPasswordForEmail(
+    values.email,
+    {
+      redirectTo: callbackFor(`/${values.locale}${authPaths.updatePassword}`),
+    },
+  );
 
   return error ? failed(error) : { ok: true };
 }
