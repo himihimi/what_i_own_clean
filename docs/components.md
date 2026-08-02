@@ -11,6 +11,9 @@ it. Public and unauthenticated on purpose: needing a session to look at a chip i
 stops anyone looking. It renders through the real catalogues, so switching language there switches
 the components'.
 
+`.claude/skills/existing-components/` points here before any new screen is built, so this file is
+read rather than rediscovered.
+
 ---
 
 ## 1. The item screens are field-driven
