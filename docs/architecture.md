@@ -1,7 +1,8 @@
 # Architecture — What I Own
 
 The record of what was decided and why. Sections are written as the
-corresponding code lands. See [design.md](./design.md) for the visual system.
+corresponding code lands. See [design.md](./design.md) for the visual system,
+and [components.md](./components.md) for the component inventory.
 
 Still to write up: the Supabase-direct shape, the data model, row-level
 security, the AI seam, the intake and assistant flows, testing, milestones.

@@ -1,6 +1,7 @@
 # Design System — What I Own
 
-The visual system. See [architecture.md](./architecture.md) for technical decisions.
+The visual system. See [architecture.md](./architecture.md) for technical decisions, and
+[components.md](./components.md) for what gets built from this and what comes from shadcn.
 
 ---
 
@@ -439,6 +440,8 @@ Non-negotiable, and mostly missing from the mockups.
 
 ## 13. Still to write
 
-Space scale, elevation, motion tokens, component specs beyond login (item card, status pill, tag,
-chip, bottom sheet, tab bar, chat bubbles, module card), empty and error states, the thumbnail
-crop rules, and breakpoints beyond 390.
+Space scale, elevation, chat bubbles, the thumbnail crop rules, and breakpoints beyond 390.
+
+The library and item components are inventoried in [components.md](./components.md) — what each one
+is for and why it behaves as it does. What is still missing there is their measured specs: the sizes,
+weights and spacing that §3 to §5 give for everything built so far.
